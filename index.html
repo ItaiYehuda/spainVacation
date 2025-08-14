@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <title>Pyrenees Trip Dashboard</title>
   <link rel="stylesheet" href="styles.css" />
   <!-- Leaflet CSS -->
@@ -18,19 +18,14 @@
     <nav class="nav">
       <button class="tab-btn active" data-tab="hikes">Hikes</button>
       <button class="tab-btn" data-tab="accommodations">Accommodations</button>
+      <button class="tab-btn" data-tab="attractions">Attractions</button>
       <button class="tab-btn" data-tab="map">Map</button>
       <button class="tab-btn" data-tab="data">Data</button>
     </nav>
   </header>
 
-  <!-- Hero banner with Pyrenees mountains image -->
-  <section class="hero" role="img" aria-label="Pyrenees mountains">
-    <div class="hero-overlay"></div>
-    <div class="hero-content">
-      <h1>Pyrenees Family Trip</h1>
-      <p>Hikes • Accommodations • Map</p>
-    </div>
-  </section>
+  <!-- Hero banner with Pyrenees image (decorative only; no titles here) -->
+  <section class="hero" role="img" aria-label="Pyrenees mountains"></section>
 
   <main class="container">
     <!-- Hikes Section -->
@@ -50,12 +45,23 @@
     <!-- Accommodations Section -->
     <section id="accommodations" class="tab-section">
       <div class="toolbar">
-        <div class="left"><h2>Your Accommodations</h2></div>
+        <div class="left"></div>
         <div class="right">
           <button id="addAccomBtn">+ Add Accommodation</button>
         </div>
       </div>
       <div id="accommodationsList" class="list"></div>
+    </section>
+
+    <!-- Attractions Section -->
+    <section id="attractions" class="tab-section">
+      <div class="toolbar">
+        <div class="left"></div>
+        <div class="right">
+          <button id="addAttrBtn">+ Add Attraction</button>
+        </div>
+      </div>
+      <div id="attractionsList" class="list"></div>
     </section>
 
     <!-- Map Section -->
@@ -64,13 +70,14 @@
       <div class="map-legend">
         <span class="legend-item"><span class="dot dot-hike"></span>Hike</span>
         <span class="legend-item"><span class="dot dot-accom"></span>Accommodation</span>
+        <span class="legend-item"><span class="dot dot-attr"></span>Attraction</span>
         <button id="fitBoundsBtn">Fit All</button>
       </div>
     </section>
 
-    <!-- Data Section (Import/Export) -->
+    <!-- Data Section (Import/Export + Hero image URL) -->
     <section id="data" class="tab-section">
-      <h2>Manage Data</h2>
+      <h2 class="sr-only">Data</h2>
       <div class="panel">
         <div class="panel-col">
           <h3>Local Save</h3>
@@ -90,6 +97,15 @@
             <input type="file" id="importXlsxInput" accept=".xlsx, .xls" hidden />
             <button id="importXlsxBtn">Import Excel (Sheet 2)</button>
           </div>
+        </div>
+        <div class="panel-col">
+          <h3>Hero Image</h3>
+          <label class="stack">
+            <span>Hero image URL (e.g., your GitHub image)</span>
+            <input id="heroUrlInput" type="url" placeholder="https://raw.githubusercontent.com/you/repo/branch/pyrenees.jpg" />
+          </label>
+          <button id="saveHeroBtn" class="primary">Use This Image</button>
+          <p class="hint">This sets the banner image at the top. Stored locally in your browser.</p>
         </div>
       </div>
     </section>
@@ -156,6 +172,35 @@
       <div class="spacer"></div>
       <button class="close-modal">Cancel</button>
       <button id="saveAccomBtn" class="primary">Save</button>
+    </div>
+  </div>
+
+  <div id="attrModal" class="modal hidden">
+    <div class="modal-header">
+      <h3 id="attrModalTitle">Add/Edit Attraction</h3>
+      <button class="close-modal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="two-col">
+        <label>Name<input id="attrName" /></label>
+        <label>Region<input id="attrRegion" /></label>
+      </div>
+      <div class="two-col">
+        <label>Category<input id="attrCategory" placeholder="e.g., Museum, Viewpoint, Park" /></label>
+        <label>Link<input id="attrLink" placeholder="https://" /></label>
+      </div>
+      <div class="two-col">
+        <label>Latitude<input id="attrLat" type="number" step="any" /></label>
+        <label>Longitude<input id="attrLon" type="number" step="any" /></label>
+      </div>
+      <label>Notes<textarea id="attrNotes" rows="3"></textarea></label>
+      <div class="hint">Tip: Click on the map to fill Lat/Lon.</div>
+    </div>
+    <div class="modal-footer">
+      <button id="deleteAttrBtn" class="danger">Delete</button>
+      <div class="spacer"></div>
+      <button class="close-modal">Cancel</button>
+      <button id="saveAttrBtn" class="primary">Save</button>
     </div>
   </div>
 
