@@ -1,0 +1,223 @@
+:root {
+  /* Nature/forest palette */
+  --bg: #0c1b13;           /* deep forest */
+  --bg-2: #0a2519;         /* rich pine */
+  --muted: #a8c2b0;        /* misty sage */
+  --text: #eff7f2;         /* light mint */
+  --primary: #46c083;      /* leaf green */
+  --ring: rgba(70,192,131,0.35);
+
+  /* Hike card (light blue) */
+  --card-blue-1: #eaf5ff;
+  --card-blue-2: #d9ecff;
+  --card-ink: #0b2542;     /* dark navy for text on the light-blue cards */
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background:
+    radial-gradient(1200px 600px at 10% 0%, var(--bg-2) 0%, var(--bg) 60%, #07130e 100%);
+  color: var(--text);
+}
+
+/* Center the main content and make it wider */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 22px 22px 32px;
+}
+
+/* ===== Top bar & centered BIG nav buttons ===== */
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  display: flex;
+  flex-direction: column;          /* stack title above nav */
+  align-items: center;             /* center horizontally */
+  gap: 8px;
+  padding: 16px 18px;
+  background: rgba(8,20,15,0.84);  /* translucent forest */
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.title {
+  font-weight: 800; letter-spacing: 0.5px;
+  text-align: center;
+}
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;         /* center the buttons */
+  align-items: center;
+  gap: 14px;
+}
+.nav .tab-btn {
+  padding: 14px 22px;
+  font-size: 1.06rem;
+  border-radius: 14px;
+  background: #0f2a1d;
+  color: var(--text);
+  border: 1px solid rgba(255,255,255,0.10);
+  cursor: pointer; transition: 0.2s;
+}
+.nav .tab-btn.active, .nav .tab-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  box-shadow: 0 0 0 3px var(--ring);
+  transform: translateY(-1px);
+}
+
+/* ===== Hero with Pyrenees image ===== */
+.hero {
+  position: relative;
+  height: clamp(220px, 30vw, 360px);
+  background-image:
+    linear-gradient(to bottom, rgba(7,19,14,0.15), rgba(7,19,14,0.6)),
+    url("https://source.unsplash.com/1600x600/?pyrenees,mountains"); /* replace with your own photo if you like */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.hero-overlay { position: absolute; inset: 0; }
+.hero-content {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  text-align: center;
+  color: #f0faf4;
+  text-shadow: 0 2px 18px rgba(0,0,0,0.35);
+}
+.hero h1 { margin: 0; font-size: clamp(28px, 4vw, 44px); letter-spacing: 0.4px; }
+.hero p { margin: 6px 0 0; opacity: 0.9; }
+
+/* Tabs / Sections */
+.tab-section { display: none; }
+.tab-section.visible { display: block; }
+
+.toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; gap: 10px;
+}
+.toolbar .left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.toolbar .right { display: flex; gap: 10px; }
+
+/* Buttons (general) */
+button {
+  background: linear-gradient(180deg, #143d29, #0f2f22);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text); padding: 10px 14px; border-radius: 12px; cursor: pointer;
+}
+button.primary { border-color: var(--primary); color: var(--primary); }
+button.danger { border-color: #d9534f; color: #ffd1cf; }
+button:hover { transform: translateY(-1px); }
+
+/* Region segmented tabs (clickable) */
+.segmented { display: flex; gap: 8px; flex-wrap: wrap; }
+.seg-btn {
+  background: #0f2a1d;
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--muted);
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.seg-btn:hover { color: var(--primary); border-color: var(--primary); }
+.seg-btn.active {
+  background: #153b29;
+  color: var(--text);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+/* ===== Hike cards — light blue ===== */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+.flip-card { perspective: 1000px; }
+.flip-inner {
+  position: relative; width: 100%; height: 260px;
+  transition: transform 0.6s; transform-style: preserve-3d;
+}
+.flip-card.flipped .flip-inner { transform: rotateY(180deg); }
+
+.flip-face {
+  position: absolute; inset: 0; border-radius: 18px; overflow: hidden;
+  background: linear-gradient(180deg, var(--card-blue-1), var(--card-blue-2));
+  color: var(--card-ink);
+  border: 1px solid rgba(12,37,67,0.12);
+  padding: 16px;
+  backface-visibility: hidden;
+}
+.flip-face.back { transform: rotateY(180deg); }
+
+.badge {
+  display: inline-block; padding: 3px 10px; border-radius: 999px;
+  border: 1px solid rgba(12,37,67,0.2);
+  color: #274b6a; font-size: 12px; background: rgba(255,255,255,0.6);
+}
+.hike-title { font-weight: 700; margin: 8px 0; font-size: 18px; color: var(--card-ink); }
+.meta { font-size: 14px; color: #3a536b; }
+
+.card-actions { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 8px; }
+.card-actions button {
+  font-size: 12px;
+  background: #e7f1fb; color: #18324c;
+  border: 1px solid rgba(12,37,67,0.18);
+}
+
+/* Accommodations list */
+.list { display: grid; gap: 14px; }
+.list-item {
+  border-radius: 16px; padding: 16px;
+  background: linear-gradient(180deg, rgba(18,42,32,0.7), rgba(13,34,24,0.7));
+  border: 1px solid rgba(255,255,255,0.08);
+  display: grid; grid-template-columns: 1fr auto; gap: 12px;
+}
+.list .meta { font-size: 14px; color: var(--muted); }
+
+/* Map */
+#mapContainer {
+  width: 100%; height: 82vh;
+  border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08);
+}
+.map-legend {
+  margin-top: 12px;
+  display: flex; gap: 14px; align-items: center; justify-content: center;
+}
+.legend-item { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.dot-hike { background: #46c083; }
+.dot-accom { background: #c2a878; }
+
+/* Modal */
+.backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); }
+.hidden { display: none; }
+.modal {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: min(740px, 92vw); background: rgba(15,39,27,0.98); border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.modal-body { padding: 16px; display: grid; gap: 10px; }
+.modal-footer { padding: 12px 14px; display: flex; align-items: center; gap: 8px; border-top: 1px solid rgba(255,255,255,0.08); }
+.modal .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.modal label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+.modal input, .modal textarea, .modal select {
+  background: #10251b; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: var(--text);
+  padding: 10px 12px;
+}
+.close-modal {
+  background: transparent; border: none; font-size: 24px; color: var(--muted); cursor: pointer;
+}
+
+/* Small screens */
+@media (max-width: 640px) {
+  .nav { gap: 10px; }
+  .nav .tab-btn { padding: 12px 16px; font-size: 1rem; }
+  .modal .two-col { grid-template-columns: 1fr; }
+  .flip-inner { height: 280px; }
+}

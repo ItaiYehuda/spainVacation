@@ -1,0 +1,134 @@
+[
+  {
+    "name": "Cirque d'Estaubé",
+    "region": "French Pyrenees",
+    "duration": "6 km or 12 km to the end to to Pla d'Ailhet",
+    "difficulty": "Easy",
+    "starting_point": null,
+    "link": "https://www.enfant-en-voyage.com/en/hiking-in-the-Cirque-d%27Estaube/",
+    "lat": null,
+    "lon": null,
+    "notes": null
+  },
+  {
+    "name": "Cirque of Troumouse",
+    "region": "French Pyrenees",
+    "duration": "5 km",
+    "difficulty": "Easy",
+    "starting_point": "Toll road to start point",
+    "link": "https://www.enfant-en-voyage.com/en/troumouse-circus-hiking/",
+    "lat": null,
+    "lon": null,
+    "notes": "Toll road to start point"
+  },
+  {
+    "name": "Pahule Peak and Espécières Lake",
+    "region": "French Pyrenees",
+    "duration": null,
+    "difficulty": null,
+    "starting_point": "Starting from the parking lot of the Col de Tentes\nCan visit also Espécières lake 10 min walk",
+    "link": null,
+    "lat": null,
+    "lon": null,
+    "notes": "Starting from the parking lot of the Col de Tentes\nCan visit also Espécières lake 10 min walk"
+  },
+  {
+    "name": "Cirque de Lys",
+    "region": "French Pyrenees",
+    "duration": "3 hours",
+    "difficulty": "Easy",
+    "starting_point": "Starting point - Pont de Crabiou",
+    "link": "https://www.enfant-en-voyage.com/en/lys-circus-hiking/",
+    "lat": null,
+    "lon": null,
+    "notes": "Starting point - Pont de Crabiou"
+  },
+  {
+    "name": "the Larri in the Pineta Valley",
+    "region": "Ordessa",
+    "duration": "4 hours",
+    "difficulty": "Easy",
+    "starting_point": "From Bielsa take road HU-V-6402 in the valley until parking at the end",
+    "link": "https://www.enfant-en-voyage.com/en/hiking-pineta-valley/",
+    "lat": null,
+    "lon": null,
+    "notes": "From Bielsa take road HU-V-6402 in the valley until parking at the end"
+  },
+  {
+    "name": "Pic de la Pahule",
+    "region": "French Pyrenees",
+    "duration": null,
+    "difficulty": null,
+    "starting_point": "Start point Col de Tentes",
+    "link": "https://www.enfant-en-voyage.com/en/circus-gavarnie-family-hiking/#D'autres%20randonn%C3%A9es%20en%20famille%20dans%20les%20Pyr%C3%A9n%C3%A9es%20et%20ailleurs",
+    "lat": null,
+    "lon": null,
+    "notes": "Start point Col de Tentes"
+  },
+  {
+    "name": "קניון אניסקלו (Anisclo)",
+    "region": "Ordessa",
+    "duration": null,
+    "difficulty": null,
+    "starting_point": null,
+    "link": null,
+    "lat": null,
+    "lon": null,
+    "notes": "מגיעים ל Escalona, נוסעים לכיוון כביש הנוף HU-631 לכיוון Passo Vio (אבל לא פונים אליה) ואז ממשיכים עם שילוט די פשוט לאניסקלו."
+  },
+  {
+    "name": "שביל המנזרים של טלה",
+    "region": "Ordessa",
+    "duration": null,
+    "difficulty": null,
+    "starting_point": null,
+    "link": null,
+    "lat": null,
+    "lon": null,
+    "notes": null
+  },
+  {
+    "name": "Estany de Gerber",
+    "region": "Aigüestortes",
+    "duration": "3.5 km",
+    "difficulty": "Easy",
+    "starting_point": null,
+    "link": "https://www.komoot.com/guide/175014/hiking-around-estany-de-gerber#guide_tour_e1266310582",
+    "lat": null,
+    "lon": null,
+    "notes": null
+  },
+  {
+    "name": "Artiga de Lin",
+    "region": "Aigüestortes",
+    "duration": "6 km",
+    "difficulty": "Easy",
+    "starting_point": "Begin the hike in the car park of Uelhs deth Joeu",
+    "link": "https://www.visitvaldaran.com/en/item/artiga-lin-uelhs-deth-joeu/",
+    "lat": null,
+    "lon": null,
+    "notes": "Extra link: https://www.komoot.com/tour/963841399"
+  },
+  {
+    "name": "The Horsetail",
+    "region": "Ordessa",
+    "duration": null,
+    "difficulty": null,
+    "starting_point": null,
+    "link": null,
+    "lat": null,
+    "lon": null,
+    "notes": null
+  },
+  {
+    "name": "Llacs de Tristaina",
+    "region": "Andorra",
+    "duration": "4.4 km full trail",
+    "difficulty": "Moderate",
+    "starting_point": "Can start at top or take cable car up.  Hike to 1st lake is easy 40 min",
+    "link": null,
+    "lat": null,
+    "lon": null,
+    "notes": "Extra difficulty note: 1st part Easy"
+  }
+]

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pyrenees Trip Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="topbar">
+    <div class="title">Pyrenees Family Trip</div>
+    <nav class="nav">
+      <button class="tab-btn active" data-tab="hikes">Hikes</button>
+      <button class="tab-btn" data-tab="accommodations">Accommodations</button>
+      <button class="tab-btn" data-tab="map">Map</button>
+      <button class="tab-btn" data-tab="data">Data</button>
+    </nav>
+  </header>
+
+  <!-- Hero banner with Pyrenees mountains image -->
+  <section class="hero" role="img" aria-label="Pyrenees mountains">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <h1>Pyrenees Family Trip</h1>
+      <p>Hikes • Accommodations • Map</p>
+    </div>
+  </section>
+
+  <main class="container">
+    <!-- Hikes Section -->
+    <section id="hikes" class="tab-section visible">
+      <div class="toolbar">
+        <div class="left">
+          <div id="regionTabs" class="segmented" aria-label="Regions"></div>
+        </div>
+        <div class="right">
+          <button id="addHikeBtn">+ Add Hike</button>
+          <button id="resetHikesBtn" title="Reload hikes.json">Reset to File</button>
+        </div>
+      </div>
+      <div id="hikeCards" class="card-grid"></div>
+    </section>
+
+    <!-- Accommodations Section -->
+    <section id="accommodations" class="tab-section">
+      <div class="toolbar">
+        <div class="left"><h2>Your Accommodations</h2></div>
+        <div class="right">
+          <button id="addAccomBtn">+ Add Accommodation</button>
+        </div>
+      </div>
+      <div id="accommodationsList" class="list"></div>
+    </section>
+
+    <!-- Map Section -->
+    <section id="map" class="tab-section">
+      <div id="mapContainer"></div>
+      <div class="map-legend">
+        <span class="legend-item"><span class="dot dot-hike"></span>Hike</span>
+        <span class="legend-item"><span class="dot dot-accom"></span>Accommodation</span>
+        <button id="fitBoundsBtn">Fit All</button>
+      </div>
+    </section>
+
+    <!-- Data Section (Import/Export) -->
+    <section id="data" class="tab-section">
+      <h2>Manage Data</h2>
+      <div class="panel">
+        <div class="panel-col">
+          <h3>Local Save</h3>
+          <p>All changes are saved in your browser (no password needed).</p>
+          <button id="saveLocalBtn">Save Now</button>
+          <button id="clearLocalBtn" class="danger">Clear Local Data</button>
+          <p class="hint">Tip: Use Export to download a backup of your changes.</p>
+        </div>
+        <div class="panel-col">
+          <h3>Import / Export</h3>
+          <div class="io-row">
+            <button id="exportJsonBtn">Export JSON</button>
+            <input type="file" id="importJsonInput" accept=".json" hidden />
+            <button id="importJsonBtn">Import JSON</button>
+          </div>
+          <div class="io-row">
+            <input type="file" id="importXlsxInput" accept=".xlsx, .xls" hidden />
+            <button id="importXlsxBtn">Import Excel (Sheet 2)</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modals -->
+  <div id="modalBackdrop" class="backdrop hidden"></div>
+
+  <div id="hikeModal" class="modal hidden">
+    <div class="modal-header">
+      <h3 id="hikeModalTitle">Add/Edit Hike</h3>
+      <button class="close-modal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="two-col">
+        <label>Name<input id="hikeName" /></label>
+        <label>Region<input id="hikeRegion" /></label>
+      </div>
+      <div class="two-col">
+        <label>Duration<input id="hikeDuration" placeholder="e.g., 4h 30m" /></label>
+        <label>Difficulty<input id="hikeDifficulty" placeholder="Easy / Moderate / Hard" /></label>
+      </div>
+      <label>Starting Point<input id="hikeStart" placeholder="Trailhead / Parking" /></label>
+      <label>Link to Details<input id="hikeLink" placeholder="https://" /></label>
+      <div class="two-col">
+        <label>Latitude<input id="hikeLat" type="number" step="any" /></label>
+        <label>Longitude<input id="hikeLon" type="number" step="any" /></label>
+      </div>
+      <label>Notes<textarea id="hikeNotes" rows="3"></textarea></label>
+      <div class="hint">Tip: Click on the map to fill Lat/Lon.</div>
+    </div>
+    <div class="modal-footer">
+      <button id="deleteHikeBtn" class="danger">Delete</button>
+      <div class="spacer"></div>
+      <button class="close-modal">Cancel</button>
+      <button id="saveHikeBtn" class="primary">Save</button>
+    </div>
+  </div>
+
+  <div id="accomModal" class="modal hidden">
+    <div class="modal-header">
+      <h3 id="accomModalTitle">Add/Edit Accommodation</h3>
+      <button class="close-modal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="two-col">
+        <label>Name<input id="accomName" /></label>
+        <label>Region<input id="accomRegion" /></label>
+      </div>
+      <div class="two-col">
+        <label>Check-in Date<input id="accomCheckinDate" type="date" /></label>
+        <label>Check-in Time<input id="accomCheckinTime" type="time" /></label>
+      </div>
+      <label>Link to Check-in Instructions<input id="accomLink" placeholder="https://" /></label>
+      <div class="two-col">
+        <label>Latitude<input id="accomLat" type="number" step="any" /></label>
+        <label>Longitude<input id="accomLon" type="number" step="any" /></label>
+      </div>
+      <label>Notes<textarea id="accomNotes" rows="3"></textarea></label>
+      <div class="hint">Tip: Click on the map to fill Lat/Lon.</div>
+    </div>
+    <div class="modal-footer">
+      <button id="deleteAccomBtn" class="danger">Delete</button>
+      <div class="spacer"></div>
+      <button class="close-modal">Cancel</button>
+      <button id="saveAccomBtn" class="primary">Save</button>
+    </div>
+  </div>
+
+  <!-- Inline hikes data so it works from file:// too -->
+  <script>
+    window.BUNDLED_HIKES = [
+      {"name":"Cirque d'Estaubé","region":"French Pyrenees","duration":"6 km or 12 km to the end to to Pla d'Ailhet","difficulty":"Easy","starting_point":null,"link":"https://www.enfant-en-voyage.com/en/hiking-in-the-Cirque-d%27Estaube/","lat":null,"lon":null,"notes":null},
+      {"name":"Cirque of Troumouse","region":"French Pyrenees","duration":"5 km","difficulty":"Easy","starting_point":"Toll road to start point","link":"https://www.enfant-en-voyage.com/en/troumouse-circus-hiking/","lat":null,"lon":null,"notes":"Toll road to start point"},
+      {"name":"Pahule Peak and Espécières Lake","region":"French Pyrenees","duration":null,"difficulty":null,"starting_point":"Starting from the parking lot of the Col de Tentes\nCan visit also Espécières lake 10 min walk","link":null,"lat":null,"lon":null,"notes":"Starting from the parking lot of the Col de Tentes\nCan visit also Espécières lake 10 min walk"},
+      {"name":"Cirque de Lys","region":"French Pyrenees","duration":"3 hours","difficulty":"Easy","starting_point":"Starting point - Pont de Crabiou","link":"https://www.enfant-en-voyage.com/en/lys-circus-hiking/","lat":null,"lon":null,"notes":"Starting point - Pont de Crabiou"},
+      {"name":"the Larri in the Pineta Valley","region":"Ordessa","duration":"4 hours","difficulty":"Easy","starting_point":"From Bielsa take road HU-V-6402 in the valley until parking at the end","link":"https://www.enfant-en-voyage.com/en/hiking-pineta-valley/","lat":null,"lon":null,"notes":"From Bielsa take road HU-V-6402 in the valley until parking at the end"},
+      {"name":"Pic de la Pahule","region":"French Pyrenees","duration":null,"difficulty":null,"starting_point":"Start point Col de Tentes","link":"https://www.enfant-en-voyage.com/en/circus-gavarnie-family-hiking/#D'autres%20randonn%C3%A9es%20en%20famille%20dans%20les%20Pyr%C3%A9n%C3%A9es%20et%20ailleurs","lat":null,"lon":null,"notes":"Start point Col de Tentes"},
+      {"name":"קניון אניסקלו (Anisclo)","region":"Ordessa","duration":null,"difficulty":null,"starting_point":null,"link":null,"lat":null,"lon":null,"notes":"מגיעים ל Escalona, נוסעים לכיוון כביש הנוף HU-631 לכיוון Passo Vio (אבל לא פונים אליה) ואז ממשיכים עם שילוט די פשוט לאניסקלו."},
+      {"name":"שביל המנזרים של טלה","region":"Ordessa","duration":null,"difficulty":null,"starting_point":null,"link":null,"lat":null,"lon":null,"notes":null},
+      {"name":"Estany de Gerber","region":"Aigüestortes","duration":"3.5 km","difficulty":"Easy","starting_point":null,"link":"https://www.komoot.com/guide/175014/hiking-around-estany-de-gerber#guide_tour_e1266310582","lat":null,"lon":null,"notes":null},
+      {"name":"Artiga de Lin","region":"Aigüestortes","duration":"6 km","difficulty":"Easy","starting_point":"Begin the hike in the car park of Uelhs deth Joeu","link":"https://www.visitvaldaran.com/en/item/artiga-lin-uelhs-deth-joeu/","lat":null,"lon":null,"notes":"Extra link: https://www.komoot.com/tour/963841399"},
+      {"name":"The Horsetail","region":"Ordessa","duration":null,"difficulty":null,"starting_point":null,"link":null,"lat":null,"lon":null,"notes":null},
+      {"name":"Llacs de Tristaina","region":"Andorra","duration":"4.4 km full trail","difficulty":"Moderate","starting_point":"Can start at top or take cable car up.  Hike to 1st lake is easy 40 min","link":null,"lat":null,"lon":null,"notes":"Extra difficulty note: 1st part Easy"}
+    ];
+  </script>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- SheetJS for Excel import -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
