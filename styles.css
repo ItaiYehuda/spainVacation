@@ -11,7 +11,7 @@
   /* Hike card (light blue) */
   --card-blue-1: #eaf5ff;
   --card-blue-2: #d9ecff;
-  --card-ink: #0b2542;     /* navy text on light-blue cards */
+  --card-ink: #0b2542;
 }
 
 /* Reset & body */
@@ -35,18 +35,18 @@ body {
 .topbar {
   position: sticky; top: 0; z-index: 20;
   display: flex; flex-direction: column; align-items: center; gap: 6px;
-  padding: max(8px, env(safe-area-inset-top)) 10px 8px; /* smaller top padding */
+  padding: max(8px, env(safe-area-inset-top)) 10px 8px;
   background: rgba(10, 28, 36, 0.9);
   backdrop-filter: blur(6px);
   border-bottom: 1px solid rgba(255,255,255,0.06);
-  margin: 0; /* kill any stray margins */
+  margin: 0;
 }
 .title { font-weight: 800; letter-spacing: 0.5px; text-align: center; }
 
 .nav {
   display: flex; flex-wrap: nowrap; overflow-x: auto;
   justify-content: center; align-items: center; gap: 10px;
-  padding: 0; margin: 0;  /* tighten */
+  padding: 0; margin: 0;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
@@ -68,16 +68,16 @@ body {
   transform: translateY(-1px);
 }
 
-/* ===== Hero (uses your hero.jpg) ===== */
+/* ===== Hero (your hero.jpg) ===== */
 .hero {
   height: clamp(160px, 26vw, 300px);
   background-image:
     linear-gradient(to bottom, rgba(6,18,26,0.15), rgba(6,18,26,0.55)),
-    url("hero.jpg"); /* your image file */
+    url("hero.jpg");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  margin: 0; /* remove any gap above/below */
+  margin: 0;
 }
 
 /* Tabs / Sections */
@@ -91,7 +91,7 @@ body {
 .toolbar .left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .toolbar .right { display: flex; gap: 8px; }
 
-/* Buttons (general) */
+/* Buttons */
 button {
   background: linear-gradient(180deg, #1b4257, #132f3f);
   border: 1px solid rgba(255,255,255,0.08);
@@ -109,8 +109,7 @@ button:hover { transform: translateY(-1px); }
   color: var(--muted);
   padding: 8px 12px;
   border-radius: 999px;
-  cursor: pointer;
-  transition: 0.2s;
+  cursor: pointer; transition: 0.2s;
 }
 .seg-btn:hover { color: var(--primary); border-color: var(--primary); }
 .seg-btn.active {
@@ -126,14 +125,12 @@ button:hover { transform: translateY(-1px); }
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 16px;
 }
-
 .flip-card { perspective: 1000px; }
 .flip-inner {
   position: relative; width: 100%; height: 250px;
   transition: transform 0.6s; transform-style: preserve-3d;
 }
 .flip-card.flipped .flip-inner { transform: rotateY(180deg); }
-
 .flip-face {
   position: absolute; inset: 0; border-radius: 16px; overflow: hidden;
   background: linear-gradient(180deg, var(--card-blue-1), var(--card-blue-2));
@@ -143,7 +140,6 @@ button:hover { transform: translateY(-1px); }
   backface-visibility: hidden;
 }
 .flip-face.back { transform: rotateY(180deg); }
-
 .badge {
   display: inline-block; padding: 3px 10px; border-radius: 999px;
   border: 1px solid rgba(12,37,67,0.2);
@@ -151,7 +147,6 @@ button:hover { transform: translateY(-1px); }
 }
 .hike-title { font-weight: 700; margin: 8px 0; font-size: 18px; color: var(--card-ink); }
 .meta { font-size: 14px; color: #3a536b; }
-
 .card-actions { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 8px; }
 .card-actions button {
   font-size: 12px;
@@ -159,7 +154,7 @@ button:hover { transform: translateY(-1px); }
   border: 1px solid rgba(12,37,67,0.18);
 }
 
-/* Accommodations & Attractions lists */
+/* Lists (Accommodations & Attractions) */
 .list { display: grid; gap: 12px; }
 .list-item {
   border-radius: 16px; padding: 14px;
@@ -180,9 +175,9 @@ button:hover { transform: translateY(-1px); }
 }
 .legend-item { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.dot-hike { background: var(--primary); }    /* sky blue */
-.dot-accom { background: var(--accent); }    /* golden */
-.dot-attr { background: #d9822b; }           /* warm rust */
+.dot-hike { background: var(--primary); }
+.dot-accom { background: var(--accent); }
+.dot-attr { background: #d9822b; }
 
 /* Modal */
 .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); }
@@ -212,7 +207,7 @@ button:hover { transform: translateY(-1px); }
   overflow: hidden; clip: rect(1px,1px,1px,1px);
 }
 
-/* Mobile tweaks */
+/* Mobile */
 @media (max-width: 640px) {
   .nav .tab-btn { padding: 11px 14px; font-size: 1rem; }
   .modal .two-col { grid-template-columns: 1fr; }
