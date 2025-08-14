@@ -24,7 +24,7 @@
     </nav>
   </header>
 
-  <!-- Image-only hero (your photo) -->
+  <!-- Image-only hero (uses hero.jpg by default) -->
   <section class="hero" role="img" aria-label="Pyrenees mountains"></section>
 
   <main class="container">
@@ -86,6 +86,7 @@
           <button id="clearLocalBtn" class="danger">Clear Local Data</button>
           <p class="hint">Tip: Use Export to download a backup of your changes.</p>
         </div>
+
         <div class="panel-col">
           <h3>Import / Export</h3>
           <div class="io-row">
@@ -98,22 +99,29 @@
             <button id="importXlsxBtn">Import Excel (Sheet 2)</button>
           </div>
         </div>
+
+        <!-- Hero image controls: use local hero.jpg, a URL, or upload -->
         <div class="panel-col">
           <h3>Hero Image</h3>
           <label class="stack">
             <span>Hero image URL (optional — overrides hero.jpg)</span>
             <input id="heroUrlInput" type="url" placeholder="https://raw.githubusercontent.com/you/repo/branch/pyrenees.jpg" />
           </label>
-          <button id="saveHeroBtn" class="primary">Use This Image</button>
-          <p class="hint">Paste a GitHub/Raw URL if you want to override the local hero.jpg.</p>
+          <div class="io-row">
+            <button id="saveHeroBtn" class="primary">Use This URL</button>
+            <input type="file" id="importHeroInput" accept="image/*" hidden />
+            <button id="importHeroBtn">Upload Image (JPG/PNG)</button>
+          </div>
+          <p class="hint">Priority: Upload → URL → local <code>hero.jpg</code>.</p>
         </div>
       </div>
     </section>
   </main>
 
-  <!-- Modals -->
+  <!-- Backdrop -->
   <div id="modalBackdrop" class="backdrop hidden"></div>
 
+  <!-- Hike modal -->
   <div id="hikeModal" class="modal hidden">
     <div class="modal-header">
       <h3 id="hikeModalTitle">Add/Edit Hike</h3>
@@ -145,6 +153,7 @@
     </div>
   </div>
 
+  <!-- Accommodation modal -->
   <div id="accomModal" class="modal hidden">
     <div class="modal-header">
       <h3 id="accomModalTitle">Add/Edit Accommodation</h3>
@@ -175,6 +184,7 @@
     </div>
   </div>
 
+  <!-- Attraction modal -->
   <div id="attrModal" class="modal hidden">
     <div class="modal-header">
       <h3 id="attrModalTitle">Add/Edit Attraction</h3>
@@ -204,7 +214,7 @@
     </div>
   </div>
 
-  <!-- Inline hikes (from your Excel Sheet 2 previously) -->
+  <!-- Inline hikes (from your Sheet 2 earlier) -->
   <script>
     window.BUNDLED_HIKES = [
       {"name":"Cirque d'Estaubé","region":"French Pyrenees","duration":"6 km or 12 km to the end to to Pla d'Ailhet","difficulty":"Easy","starting_point":null,"link":"https://www.enfant-en-voyage.com/en/hiking-in-the-Cirque-d%27Estaube/","lat":null,"lon":null,"notes":null},
@@ -222,9 +232,8 @@
     ];
   </script>
 
-  <!-- Leaflet JS -->
+  <!-- Leaflet & SheetJS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <!-- SheetJS for Excel import -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="app.js"></script>
 </body>
