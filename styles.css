@@ -1,7 +1,7 @@
 :root {
   /* Palette tuned to your photo: alpine blues + evergreen + golden */
   --bg: #0e1c22;          /* deep teal forest */
-  --bg-2: #122834;        /* cooler shadow teal */
+  --bg-2: #122834;        /* shadow teal */
   --muted: #cbd9e4;       /* soft sky-slate */
   --text: #f3f8fb;        /* near-white */
   --primary: #4ea3d9;     /* sky blue */
@@ -68,7 +68,7 @@ body {
   transform: translateY(-1px);
 }
 
-/* ===== Hero (your hero.jpg) ===== */
+/* ===== Hero (uses local hero.jpg) ===== */
 .hero {
   height: clamp(160px, 26vw, 300px);
   background-image:
@@ -84,6 +84,19 @@ body {
 .tab-section { display: none; }
 .tab-section.visible { display: block; }
 
+/* Panels / Data */
+.panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.panel-col {
+  background: rgba(18,45,59,0.3);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 12px;
+}
+.io-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.stack { display: grid; gap: 6px; }
+.hint { color: var(--muted); font-size: 13px; }
+
+/* Toolbar */
 .toolbar {
   display: flex; align-items: center; justify-content: space-between;
   margin: 14px 0; gap: 10px; flex-wrap: wrap;
