@@ -11,32 +11,32 @@
   --card-blue-1: #eaf5ff;
   --card-blue-2: #d9ecff;
   --card-ink: #0b2542;     /* dark navy for text on the light-blue cards */
+
+  --sand: #c2a878;         /* attractions marker */
 }
 
+/* Reset & body */
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; height: 100%; }
 body {
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  background:
-    radial-gradient(1200px 600px at 10% 0%, var(--bg-2) 0%, var(--bg) 60%, #07130e 100%);
+  background: radial-gradient(1200px 600px at 10% 0%, var(--bg-2) 0%, var(--bg) 60%, #07130e 100%);
   color: var(--text);
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Center the main content and make it wider */
 .container {
-  max-width: 1200px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 22px 22px 32px;
+  padding: 18px 16px 28px;
 }
 
 /* ===== Top bar & centered BIG nav buttons ===== */
 .topbar {
-  position: sticky; top: 0; z-index: 10;
-  display: flex;
-  flex-direction: column;          /* stack title above nav */
-  align-items: center;             /* center horizontally */
-  gap: 8px;
-  padding: 16px 18px;
+  position: sticky; top: 0; z-index: 20;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 12px 10px env(safe-area-inset-top);
   background: rgba(8,20,15,0.84);  /* translucent forest */
   backdrop-filter: blur(6px);
   border-bottom: 1px solid rgba(255,255,255,0.06);
@@ -46,20 +46,22 @@ body {
   text-align: center;
 }
 .nav {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;         /* center the buttons */
-  align-items: center;
-  gap: 14px;
+  display: flex; flex-wrap: nowrap; overflow-x: auto;
+  justify-content: center; align-items: center; gap: 10px;
+  padding: 4px 6px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.nav::-webkit-scrollbar { display: none; }
 .nav .tab-btn {
-  padding: 14px 22px;
-  font-size: 1.06rem;
+  padding: 12px 18px;
+  font-size: 1.02rem;
   border-radius: 14px;
   background: #0f2a1d;
   color: var(--text);
   border: 1px solid rgba(255,255,255,0.10);
   cursor: pointer; transition: 0.2s;
+  flex: 0 0 auto;
 }
 .nav .tab-btn.active, .nav .tab-btn:hover {
   border-color: var(--primary);
@@ -68,27 +70,16 @@ body {
   transform: translateY(-1px);
 }
 
-/* ===== Hero with Pyrenees image ===== */
+/* ===== Hero (image only—no titles here) ===== */
 .hero {
   position: relative;
-  height: clamp(220px, 30vw, 360px);
+  height: clamp(160px, 26vw, 300px);
   background-image:
-    linear-gradient(to bottom, rgba(7,19,14,0.15), rgba(7,19,14,0.6)),
-    url("https://source.unsplash.com/1600x600/?pyrenees,mountains"); /* replace with your own photo if you like */
+    linear-gradient(to bottom, rgba(7,19,14,0.15), rgba(7,19,14,0.6));
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
 }
-.hero-overlay { position: absolute; inset: 0; }
-.hero-content {
-  position: absolute; inset: 0;
-  display: grid; place-items: center;
-  text-align: center;
-  color: #f0faf4;
-  text-shadow: 0 2px 18px rgba(0,0,0,0.35);
-}
-.hero h1 { margin: 0; font-size: clamp(28px, 4vw, 44px); letter-spacing: 0.4px; }
-.hero p { margin: 6px 0 0; opacity: 0.9; }
 
 /* Tabs / Sections */
 .tab-section { display: none; }
@@ -96,10 +87,10 @@ body {
 
 .toolbar {
   display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 16px; gap: 10px;
+  margin-bottom: 14px; gap: 10px; flex-wrap: wrap;
 }
-.toolbar .left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.toolbar .right { display: flex; gap: 10px; }
+.toolbar .left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.toolbar .right { display: flex; gap: 8px; }
 
 /* Buttons (general) */
 button {
@@ -133,23 +124,23 @@ button:hover { transform: translateY(-1px); }
 /* ===== Hike cards — light blue ===== */
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
 }
 
 .flip-card { perspective: 1000px; }
 .flip-inner {
-  position: relative; width: 100%; height: 260px;
+  position: relative; width: 100%; height: 250px;
   transition: transform 0.6s; transform-style: preserve-3d;
 }
 .flip-card.flipped .flip-inner { transform: rotateY(180deg); }
 
 .flip-face {
-  position: absolute; inset: 0; border-radius: 18px; overflow: hidden;
+  position: absolute; inset: 0; border-radius: 16px; overflow: hidden;
   background: linear-gradient(180deg, var(--card-blue-1), var(--card-blue-2));
   color: var(--card-ink);
   border: 1px solid rgba(12,37,67,0.12);
-  padding: 16px;
+  padding: 14px;
   backface-visibility: hidden;
 }
 .flip-face.back { transform: rotateY(180deg); }
@@ -162,36 +153,37 @@ button:hover { transform: translateY(-1px); }
 .hike-title { font-weight: 700; margin: 8px 0; font-size: 18px; color: var(--card-ink); }
 .meta { font-size: 14px; color: #3a536b; }
 
-.card-actions { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 8px; }
+.card-actions { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 8px; }
 .card-actions button {
   font-size: 12px;
   background: #e7f1fb; color: #18324c;
   border: 1px solid rgba(12,37,67,0.18);
 }
 
-/* Accommodations list */
-.list { display: grid; gap: 14px; }
+/* Accommodations & Attractions lists */
+.list { display: grid; gap: 12px; }
 .list-item {
-  border-radius: 16px; padding: 16px;
+  border-radius: 16px; padding: 14px;
   background: linear-gradient(180deg, rgba(18,42,32,0.7), rgba(13,34,24,0.7));
   border: 1px solid rgba(255,255,255,0.08);
-  display: grid; grid-template-columns: 1fr auto; gap: 12px;
+  display: grid; grid-template-columns: 1fr auto; gap: 10px;
 }
 .list .meta { font-size: 14px; color: var(--muted); }
 
 /* Map */
 #mapContainer {
-  width: 100%; height: 82vh;
+  width: 100%; height: 78vh;
   border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08);
 }
 .map-legend {
-  margin-top: 12px;
-  display: flex; gap: 14px; align-items: center; justify-content: center;
+  margin-top: 10px;
+  display: flex; gap: 12px; align-items: center; justify-content: center;
 }
 .legend-item { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 .dot-hike { background: #46c083; }
 .dot-accom { background: #c2a878; }
+.dot-attr { background: #f59e0b; }
 
 /* Modal */
 .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); }
@@ -214,10 +206,17 @@ button:hover { transform: translateY(-1px); }
   background: transparent; border: none; font-size: 24px; color: var(--muted); cursor: pointer;
 }
 
-/* Small screens */
+/* A11y helper */
+.sr-only {
+  position: absolute !important;
+  height: 1px; width: 1px;
+  overflow: hidden; clip: rect(1px,1px,1px,1px);
+}
+
+/* Mobile tweaks */
 @media (max-width: 640px) {
-  .nav { gap: 10px; }
-  .nav .tab-btn { padding: 12px 16px; font-size: 1rem; }
+  .nav { gap: 8px; }
+  .nav .tab-btn { padding: 11px 14px; font-size: 1rem; }
   .modal .two-col { grid-template-columns: 1fr; }
-  .flip-inner { height: 280px; }
+  .flip-inner { height: 260px; }
 }
