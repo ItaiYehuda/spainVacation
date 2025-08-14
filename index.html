@@ -24,11 +24,11 @@
     </nav>
   </header>
 
-  <!-- Hero banner with Pyrenees image (decorative only; no titles here) -->
+  <!-- Image-only hero (your photo) -->
   <section class="hero" role="img" aria-label="Pyrenees mountains"></section>
 
   <main class="container">
-    <!-- Hikes Section -->
+    <!-- Hikes -->
     <section id="hikes" class="tab-section visible">
       <div class="toolbar">
         <div class="left">
@@ -42,7 +42,7 @@
       <div id="hikeCards" class="card-grid"></div>
     </section>
 
-    <!-- Accommodations Section -->
+    <!-- Accommodations -->
     <section id="accommodations" class="tab-section">
       <div class="toolbar">
         <div class="left"></div>
@@ -53,7 +53,7 @@
       <div id="accommodationsList" class="list"></div>
     </section>
 
-    <!-- Attractions Section -->
+    <!-- Attractions -->
     <section id="attractions" class="tab-section">
       <div class="toolbar">
         <div class="left"></div>
@@ -64,7 +64,7 @@
       <div id="attractionsList" class="list"></div>
     </section>
 
-    <!-- Map Section -->
+    <!-- Map -->
     <section id="map" class="tab-section">
       <div id="mapContainer"></div>
       <div class="map-legend">
@@ -75,7 +75,7 @@
       </div>
     </section>
 
-    <!-- Data Section (Import/Export + Hero image URL) -->
+    <!-- Data -->
     <section id="data" class="tab-section">
       <h2 class="sr-only">Data</h2>
       <div class="panel">
@@ -101,11 +101,11 @@
         <div class="panel-col">
           <h3>Hero Image</h3>
           <label class="stack">
-            <span>Hero image URL (e.g., your GitHub image)</span>
+            <span>Hero image URL (optional — overrides hero.jpg)</span>
             <input id="heroUrlInput" type="url" placeholder="https://raw.githubusercontent.com/you/repo/branch/pyrenees.jpg" />
           </label>
           <button id="saveHeroBtn" class="primary">Use This Image</button>
-          <p class="hint">This sets the banner image at the top. Stored locally in your browser.</p>
+          <p class="hint">Paste a GitHub/Raw URL if you want to override the local hero.jpg.</p>
         </div>
       </div>
     </section>
@@ -204,7 +204,7 @@
     </div>
   </div>
 
-  <!-- Inline hikes data so it works from file:// too -->
+  <!-- Inline hikes (from your Excel Sheet 2 previously) -->
   <script>
     window.BUNDLED_HIKES = [
       {"name":"Cirque d'Estaubé","region":"French Pyrenees","duration":"6 km or 12 km to the end to to Pla d'Ailhet","difficulty":"Easy","starting_point":null,"link":"https://www.enfant-en-voyage.com/en/hiking-in-the-Cirque-d%27Estaube/","lat":null,"lon":null,"notes":null},
