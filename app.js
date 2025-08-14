@@ -46,9 +46,7 @@ async function loadFromFile() {
     const res = await fetch('hikes.json');
     if (!res.ok) return;
     const data = await res.json();
-    if (Array.isArray(data)) {
-      hikes = data.map(normalizeHike);
-    }
+    if (Array.isArray(data)) hikes = data.map(normalizeHike);
   } catch (e) {}
 }
 function normalizeHike(raw) {
@@ -71,16 +69,15 @@ function normalizeHike(raw) {
   };
 }
 
-// Hero image (from localStorage URL)
+// Hero image (from localStorage URL). If none set, we leave CSS default (hero.jpg).
 function applyHeroImage() {
   const url = localStorage.getItem(LS_HERO);
+  if (!url) return;
   const hero = document.querySelector('.hero');
   if (!hero) return;
-  const overlay = 'linear-gradient(to bottom, rgba(7,19,14,0.15), rgba(7,19,14,0.6)), ';
-  if (url && url.startsWith('http')) {
+  const overlay = 'linear-gradient(to bottom, rgba(6,18,26,0.15), rgba(6,18,26,0.55)), ';
+  if (url.startsWith('http') || url.startsWith('data:')) {
     hero.style.backgroundImage = overlay + `url("${url}")`;
-  } else {
-    hero.style.backgroundImage = overlay + 'url("https://source.unsplash.com/1600x600/?pyrenees,mountains")';
   }
 }
 
@@ -118,7 +115,7 @@ function renderHikeCards() {
     return cardHTML(h, i);
   }).join('');
 
-  // Attach card events
+  // Card events
   wrap.querySelectorAll('.flip-card').forEach(card => {
     card.addEventListener('click', (e) => {
       if (e.target.closest('button')) return;
@@ -286,7 +283,7 @@ function renderMarkers() {
   hikes.forEach((h) => {
     if (h.lat == null || h.lon == null) return;
     const m = L.circleMarker([h.lat, h.lon], {
-      radius: 8, weight: 2, color: '#46c083', fillColor: '#46c083', fillOpacity: 0.25
+      radius: 8, weight: 2, color: '#4ea3d9', fillColor: '#4ea3d9', fillOpacity: 0.25
     }).addTo(hikesLayer);
     m.bindPopup(`<strong>${escapeHtml(h.name || 'Hike')}</strong><br>${h.region ? escapeHtml(h.region) + '<br>' : ''}${h.duration ? escapeHtml(h.duration) + '<br>' : ''}${h.link ? '<a target=_blank href=' + escapeAttr(h.link) + '>More ↗</a>' : ''}`);
   });
@@ -294,7 +291,7 @@ function renderMarkers() {
   accommodations.forEach((a) => {
     if (a.lat == null || a.lon == null) return;
     const m = L.circleMarker([a.lat, a.lon], {
-      radius: 8, weight: 2, color: '#c2a878', fillColor: '#c2a878', fillOpacity: 0.25
+      radius: 8, weight: 2, color: '#efc36f', fillColor: '#efc36f', fillOpacity: 0.25
     }).addTo(accomLayer);
     m.bindPopup(`<strong>${escapeHtml(a.name || 'Accommodation')}</strong><br>${a.region ? escapeHtml(a.region) + '<br>' : ''}${a.checkin_date ? 'Check-in: ' + escapeHtml(a.checkin_date) + (a.checkin_time ? ' ' + escapeHtml(a.checkin_time) : '') + '<br>' : ''}${a.link ? '<a target=_blank href=' + escapeAttr(a.link) + '>Instructions ↗</a>' : ''}`);
   });
@@ -302,7 +299,7 @@ function renderMarkers() {
   attractions.forEach((t) => {
     if (t.lat == null || t.lon == null) return;
     const m = L.circleMarker([t.lat, t.lon], {
-      radius: 8, weight: 2, color: '#f59e0b', fillColor: '#f59e0b', fillOpacity: 0.25
+      radius: 8, weight: 2, color: '#d9822b', fillColor: '#d9822b', fillOpacity: 0.25
     }).addTo(attrLayer);
     m.bindPopup(`<strong>${escapeHtml(t.name || 'Attraction')}</strong><br>${t.region ? escapeHtml(t.region) + '<br>' : ''}${t.category ? escapeHtml(t.category) + '<br>' : ''}${t.link ? '<a target=_blank href=' + escapeAttr(t.link) + '>More ↗</a>' : ''}`);
   });
@@ -526,7 +523,7 @@ document.getElementById('importXlsxInput').addEventListener('change', async (e) 
   alert('Imported Excel sheet: ' + sheetName);
 });
 
-// Hero image URL controls
+// Hero image URL controls (optional override)
 document.getElementById('saveHeroBtn').addEventListener('click', () => {
   const url = document.getElementById('heroUrlInput').value.trim();
   if (!url) return;
@@ -554,7 +551,7 @@ function escapeAttr(s) { return escapeHtml(s); }
 (async function init() {
   loadLocal();
   await loadFromFile();
-  applyHeroImage(); // set hero image (GitHub URL or default)
+  applyHeroImage(); // only overrides if a URL is stored
   // Pre-fill hero URL input if stored
   const input = document.getElementById('heroUrlInput');
   const storedHero = localStorage.getItem(LS_HERO);
