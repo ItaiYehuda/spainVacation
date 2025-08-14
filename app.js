@@ -46,7 +46,9 @@ async function loadFromFile() {
     const res = await fetch('hikes.json');
     if (!res.ok) return;
     const data = await res.json();
-    if (Array.isArray(data)) hikes = data.map(normalizeHike);
+    if (Array.isArray(data)) {
+      hikes = data.map(normalizeHike);
+    }
   } catch (e) {}
 }
 function normalizeHike(raw) {
@@ -69,15 +71,46 @@ function normalizeHike(raw) {
   };
 }
 
-// Hero image (from localStorage URL). If none set, we leave CSS default (hero.jpg).
+// ===== HERO IMAGE HANDLING =====
+// If no custom URL uploaded/saved, CSS uses local hero.jpg automatically.
 function applyHeroImage() {
   const url = localStorage.getItem(LS_HERO);
-  if (!url) return;
   const hero = document.querySelector('.hero');
-  if (!hero) return;
+  if (!hero || !url) return;
   const overlay = 'linear-gradient(to bottom, rgba(6,18,26,0.15), rgba(6,18,26,0.55)), ';
-  if (url.startsWith('http') || url.startsWith('data:')) {
-    hero.style.backgroundImage = overlay + `url("${url}")`;
+  hero.style.backgroundImage = overlay + `url("${url}")`;
+}
+function initHeroControls() {
+  const urlBtn = document.getElementById('saveHeroBtn');
+  const urlInput = document.getElementById('heroUrlInput');
+  const uploadBtn = document.getElementById('importHeroBtn');
+  const uploadInput = document.getElementById('importHeroInput');
+
+  if (urlBtn && urlInput) {
+    urlBtn.addEventListener('click', () => {
+      const v = urlInput.value.trim();
+      if (!v) return;
+      localStorage.setItem(LS_HERO, v);
+      applyHeroImage();
+      alert('Hero image updated from URL!');
+    });
+    const stored = localStorage.getItem(LS_HERO);
+    if (stored && stored.startsWith('http')) urlInput.value = stored;
+  }
+
+  if (uploadBtn && uploadInput) {
+    uploadBtn.addEventListener('click', () => uploadInput.click());
+    uploadInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        localStorage.setItem(LS_HERO, reader.result); // data URL
+        applyHeroImage();
+        alert('Hero image updated from upload!');
+      };
+      reader.readAsDataURL(file);
+    });
   }
 }
 
@@ -115,7 +148,7 @@ function renderHikeCards() {
     return cardHTML(h, i);
   }).join('');
 
-  // Card events
+  // Attach card events
   wrap.querySelectorAll('.flip-card').forEach(card => {
     card.addEventListener('click', (e) => {
       if (e.target.closest('button')) return;
@@ -385,13 +418,18 @@ document.getElementById('saveHikeBtn').addEventListener('click', () => {
   };
   if (Number.isNaN(obj.lat)) obj.lat = null;
   if (Number.isNaN(obj.lon)) obj.lon = null;
+
   if (editingContext.index==null) hikes.push(obj); else hikes[editingContext.index] = obj;
-  saveLocal(); renderHikeCards(); renderMarkers(); closeModals();
+  saveLocal();
+  renderHikeCards(); renderMarkers();
+  closeModals();
 });
 document.getElementById('deleteHikeBtn').addEventListener('click', () => {
   if (editingContext?.index==null) return closeModals();
   hikes.splice(editingContext.index, 1);
-  saveLocal(); renderHikeCards(); renderMarkers(); closeModals();
+  saveLocal();
+  renderHikeCards(); renderMarkers();
+  closeModals();
 });
 
 // Accom modal
@@ -422,13 +460,18 @@ document.getElementById('saveAccomBtn').addEventListener('click', () => {
   };
   if (Number.isNaN(obj.lat)) obj.lat = null;
   if (Number.isNaN(obj.lon)) obj.lon = null;
+
   if (editingContext.index==null) accommodations.push(obj); else accommodations[editingContext.index] = obj;
-  saveLocal(); renderAccommodations(); renderMarkers(); closeModals();
+  saveLocal();
+  renderAccommodations(); renderMarkers();
+  closeModals();
 });
 document.getElementById('deleteAccomBtn').addEventListener('click', () => {
   if (editingContext?.index==null) return closeModals();
   accommodations.splice(editingContext.index, 1);
-  saveLocal(); renderAccommodations(); renderMarkers(); closeModals();
+  saveLocal();
+  renderAccommodations(); renderMarkers();
+  closeModals();
 });
 
 // Attraction modal
@@ -457,13 +500,18 @@ document.getElementById('saveAttrBtn').addEventListener('click', () => {
   };
   if (Number.isNaN(obj.lat)) obj.lat = null;
   if (Number.isNaN(obj.lon)) obj.lon = null;
+
   if (editingContext.index==null) attractions.push(obj); else attractions[editingContext.index] = obj;
-  saveLocal(); renderAttractions(); renderMarkers(); closeModals();
+  saveLocal();
+  renderAttractions(); renderMarkers();
+  closeModals();
 });
 document.getElementById('deleteAttrBtn').addEventListener('click', () => {
   if (editingContext?.index==null) return closeModals();
   attractions.splice(editingContext.index, 1);
-  saveLocal(); renderAttractions(); renderMarkers(); closeModals();
+  saveLocal();
+  renderAttractions(); renderMarkers();
+  closeModals();
 });
 
 // Data tab buttons
@@ -523,17 +571,40 @@ document.getElementById('importXlsxInput').addEventListener('change', async (e) 
   alert('Imported Excel sheet: ' + sheetName);
 });
 
-// Hero image URL controls (optional override)
-document.getElementById('saveHeroBtn').addEventListener('click', () => {
-  const url = document.getElementById('heroUrlInput').value.trim();
-  if (!url) return;
-  localStorage.setItem(LS_HERO, url);
-  applyHeroImage();
-  alert('Hero image updated!');
-});
+// Hero image URL/upload controls
+function initHeroControls() {
+  const urlBtn = document.getElementById('saveHeroBtn');
+  const urlInput = document.getElementById('heroUrlInput');
+  const uploadBtn = document.getElementById('importHeroBtn');
+  const uploadInput = document.getElementById('importHeroInput');
 
-// Fit all markers
-document.getElementById('fitBoundsBtn').addEventListener('click', fitAll);
+  if (urlBtn && urlInput) {
+    urlBtn.addEventListener('click', () => {
+      const v = urlInput.value.trim();
+      if (!v) return;
+      localStorage.setItem(LS_HERO, v);
+      applyHeroImage();
+      alert('Hero image updated from URL!');
+    });
+    const stored = localStorage.getItem(LS_HERO);
+    if (stored && stored.startsWith('http')) urlInput.value = stored;
+  }
+
+  if (uploadBtn && uploadInput) {
+    uploadBtn.addEventListener('click', () => uploadInput.click());
+    uploadInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        localStorage.setItem(LS_HERO, reader.result); // data URL
+        applyHeroImage();
+        alert('Hero image updated from upload!');
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+}
 
 // Escape helpers
 function escapeHtml(s) {
@@ -551,11 +622,8 @@ function escapeAttr(s) { return escapeHtml(s); }
 (async function init() {
   loadLocal();
   await loadFromFile();
-  applyHeroImage(); // only overrides if a URL is stored
-  // Pre-fill hero URL input if stored
-  const input = document.getElementById('heroUrlInput');
-  const storedHero = localStorage.getItem(LS_HERO);
-  if (input && storedHero) input.value = storedHero;
+  initHeroControls();
+  applyHeroImage(); // only overrides if a URL/upload is stored
 
   renderHikeCards();
   renderAccommodations();
