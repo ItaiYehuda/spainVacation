@@ -1,16 +1,20 @@
-const LS_HIKES = 'pyrenees_hikes';
+// ===== Local storage keys =====
+const LS_HIKES = 'pyrenees_hikes';                // still used as a cache
 const LS_ACCOM = 'pyrenees_accommodations';
 const LS_ATTR  = 'pyrenees_attractions';
 const LS_HERO  = 'pyrenees_hero_url';
+const LS_BACKEND = 'pyrenees_backend_url';        // NEW: Apps Script Web App URL
 
+// ===== State =====
 let hikes = [];
 let accommodations = [];
 let attractions = [];
 let map, hikesLayer, accomLayer, attrLayer;
 let editingContext = null; // { type: 'hike'|'accom'|'attr', index: number|null }
-let currentRegion = '';    // active region tab ('' = All)
+let currentRegion = '';    // active region ('': All)
+let hikeIds = [];          // parallel array of server IDs
 
-// Tabs (top nav)
+// ===== Tabs =====
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -22,7 +26,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
-// Utilities
+// ===== Utilities =====
 function saveLocal() {
   localStorage.setItem(LS_HIKES, JSON.stringify(hikes));
   localStorage.setItem(LS_ACCOM, JSON.stringify(accommodations));
@@ -36,93 +40,135 @@ function loadLocal() {
   if (a) accommodations = JSON.parse(a);
   if (t) attractions = JSON.parse(t);
 }
-async function loadFromFile() {
-  // Prefer inline bundled data so it works from file:// too
-  if (Array.isArray(window.BUNDLED_HIKES)) {
-    hikes = window.BUNDLED_HIKES.map(normalizeHike);
-    return;
-  }
-  try {
-    const res = await fetch('hikes.json');
-    if (!res.ok) return;
-    const data = await res.json();
-    if (Array.isArray(data)) {
-      hikes = data.map(normalizeHike);
-    }
-  } catch (e) {}
+
+// ===== Backend URL handling =====
+function getBackendUrl() {
+  return localStorage.getItem(LS_BACKEND) || 'YOUR_WEB_APP_URL_HERE'; // paste your /exec URL or set in Data tab
 }
+document.getElementById('saveBackendBtn').addEventListener('click', () => {
+  const url = document.getElementById('backendUrlInput').value.trim();
+  if (!url) return alert('Paste your Web App URL first.');
+  localStorage.setItem(LS_BACKEND, url);
+  alert('Backend URL saved!');
+  refreshFromCloud();
+});
+
+// ===== JSONP helper (no CORS preflight) =====
+function jsonp(url, params = {}, timeoutMs = 15000) {
+  return new Promise((resolve, reject) => {
+    const cbName = `_jsonp_cb_${Math.random().toString(36).slice(2)}`;
+    const cleanup = () => { delete window[cbName]; if (script && script.parentNode) script.parentNode.removeChild(script); };
+    const timer = setTimeout(() => { cleanup(); reject(new Error('JSONP timeout')); }, timeoutMs);
+    window[cbName] = (data) => { clearTimeout(timer); cleanup(); resolve(data); };
+    const q = new URLSearchParams(params);
+    q.set('callback', cbName);
+    const script = document.createElement('script');
+    script.src = `${url}?${q.toString()}`;
+    script.onerror = () => { clearTimeout(timer); cleanup(); reject(new Error('JSONP error')); };
+    document.body.appendChild(script);
+  });
+}
+
+// ===== Normalize hike from any source =====
 function normalizeHike(raw) {
   const get = (obj, keys) => {
-    for (const k of keys) {
-      if (obj[k] !== undefined && obj[k] !== null && obj[k] !== '') return obj[k];
-    }
+    for (const k of keys) if (obj[k] !== undefined && obj[k] !== null && obj[k] !== '') return obj[k];
     return null;
   };
   return {
-    name: get(raw, ['name','Name','מסלול','שם המסלול','title','route']),
-    region: get(raw, ['region','Region','אזור','איזור','area']),
-    duration: get(raw, ['duration','Duration','משך','time']),
-    difficulty: get(raw, ['difficulty','Difficulty','דרגת קושי','קושי']),
-    starting_point: get(raw, ['starting_point','Starting Point','start','trailhead','נקודת התחלה']),
-    link: get(raw, ['link','Link','url','details','קישור']),
-    lat: raw.lat ? Number(raw.lat) : (raw.latitude ? Number(raw.latitude) : null),
-    lon: raw.lon ? Number(raw.lon) : (raw.lng ? Number(raw.lng) : (raw.longitude ? Number(raw.longitude) : null)),
-    notes: raw.notes || (raw.extra ? JSON.stringify(raw.extra) : ''),
+    id: raw.id || null,
+    name: get(raw, ['name','Name','מסלול','שם המסלול','title','route']) || '',
+    region: get(raw, ['region','Region','אזור','איזור','area']) || '',
+    duration: get(raw, ['duration','Duration','משך','time']) || '',
+    difficulty: get(raw, ['difficulty','Difficulty','דרגת קושי','קושי']) || '',
+    starting_point: get(raw, ['starting_point','Starting Point','start','trailhead','נקודת התחלה']) || '',
+    link: get(raw, ['link','Link','url','details','קישור']) || '',
+    lat: raw.lat===''||raw.lat==null? null : Number(raw.lat),
+    lon: raw.lon===''||raw.lon==null? null : Number(raw.lon),
+    notes: raw.notes || (raw.extra ? JSON.stringify(raw.extra) : '')
   };
 }
 
-// ===== HERO IMAGE HANDLING =====
-// If no custom URL uploaded/saved, CSS uses local hero.jpg automatically.
+// ===== HERO IMAGE =====
 function applyHeroImage() {
   const url = localStorage.getItem(LS_HERO);
+  if (!url) return; // use CSS "hero.jpg"
   const hero = document.querySelector('.hero');
-  if (!hero || !url) return;
   const overlay = 'linear-gradient(to bottom, rgba(6,18,26,0.15), rgba(6,18,26,0.55)), ';
   hero.style.backgroundImage = overlay + `url("${url}")`;
 }
-function initHeroControls() {
-  const urlBtn = document.getElementById('saveHeroBtn');
-  const urlInput = document.getElementById('heroUrlInput');
-  const uploadBtn = document.getElementById('importHeroBtn');
-  const uploadInput = document.getElementById('importHeroInput');
+(function initHeroControls(){
+  document.getElementById('saveHeroBtn').addEventListener('click', () => {
+    const url = document.getElementById('heroUrlInput').value.trim();
+    if (!url) return;
+    localStorage.setItem(LS_HERO, url);
+    applyHeroImage();
+    alert('Hero image updated!');
+  });
+  document.getElementById('importHeroBtn').addEventListener('click', () => document.getElementById('importHeroInput').click());
+  document.getElementById('importHeroInput').addEventListener('change', (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { localStorage.setItem(LS_HERO, reader.result); applyHeroImage(); alert('Hero image uploaded!'); };
+    reader.readAsDataURL(file);
+  });
+})();
 
-  if (urlBtn && urlInput) {
-    urlBtn.addEventListener('click', () => {
-      const v = urlInput.value.trim();
-      if (!v) return;
-      localStorage.setItem(LS_HERO, v);
-      applyHeroImage();
-      alert('Hero image updated from URL!');
-    });
-    const stored = localStorage.getItem(LS_HERO);
-    if (stored && stored.startsWith('http')) urlInput.value = stored;
-  }
-
-  if (uploadBtn && uploadInput) {
-    uploadBtn.addEventListener('click', () => uploadInput.click());
-    uploadInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        localStorage.setItem(LS_HERO, reader.result); // data URL
-        applyHeroImage();
-        alert('Hero image updated from upload!');
-      };
-      reader.readAsDataURL(file);
-    });
-  }
+// ===== CLOUD (Apps Script) API wrappers =====
+async function cloudListHikes() {
+  const url = getBackendUrl();
+  const res = await jsonp(url, { op: 'list' });
+  if (!res || !res.ok) throw new Error(res?.error || 'Failed to load');
+  const list = res.rows.map(normalizeHike);
+  hikes = list;
+  hikeIds = list.map(h => h.id || null);
+  saveLocal();
+  renderHikeCards(); renderMarkers();
 }
 
-// Region tabs (clickable)
+async function cloudAddHike(obj) {
+  const url = getBackendUrl();
+  const res = await jsonp(url, { op: 'add', data: JSON.stringify(obj) });
+  if (!res || !res.ok) throw new Error(res?.error || 'Add failed');
+  await cloudListHikes();
+}
+
+async function cloudUpdateHike(index, obj) {
+  const id = hikeIds[index]; if (!id) return;
+  obj.id = id;
+  const url = getBackendUrl();
+  const res = await jsonp(url, { op: 'update', data: JSON.stringify(obj) });
+  if (!res || !res.ok) throw new Error(res?.error || 'Update failed');
+  await cloudListHikes();
+}
+
+async function cloudDeleteHike(index) {
+  const id = hikeIds[index]; if (!id) return;
+  const url = getBackendUrl();
+  const res = await jsonp(url, { op: 'delete', id });
+  if (!res || !res.ok) throw new Error(res?.error || 'Delete failed');
+  await cloudListHikes();
+}
+
+async function cloudWipeAndSeedFromInline() {
+  if (!confirm('This will overwrite all cloud hikes with the inline set. Continue?')) return;
+  const url = getBackendUrl();
+  await jsonp(url, { op: 'wipe' });
+  // Add each inline hike one by one to avoid long URLs
+  for (const raw of (window.BUNDLED_HIKES || [])) {
+    await cloudAddHike(normalizeHike(raw));
+  }
+  alert('Cloud reset from inline data complete.');
+}
+
+// ===== Region tabs & cards =====
 function getRegions() {
   return Array.from(new Set(hikes.map(h => h.region).filter(Boolean))).sort();
 }
 function renderRegionTabs() {
   const wrap = document.getElementById('regionTabs');
   const regions = getRegions();
-  const all = [{ label: 'All', value: '' }];
-  const items = all.concat(regions.map(r => ({ label: r, value: r })));
+  const items = [{ label: 'All', value: '' }].concat(regions.map(r => ({ label: r, value: r })));
   wrap.innerHTML = items.map(r => {
     const active = r.value === currentRegion ? 'active' : '';
     return `<button class="seg-btn ${active}" data-region="${escapeAttr(r.value)}">${escapeHtml(r.label)}</button>`;
@@ -132,48 +178,30 @@ function renderRegionTabs() {
       currentRegion = btn.dataset.region || '';
       wrap.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      renderHikeCards();  // re-filter
+      renderHikeCards();
     });
   });
 }
-
 function renderHikeCards() {
   renderRegionTabs();
   const wrap = document.getElementById('hikeCards');
   let list = hikes;
   if (currentRegion) list = list.filter(h => (h.region || '') === currentRegion);
+  wrap.innerHTML = list.map((h, _) => cardHTML(h, hikes.indexOf(h))).join('');
 
-  wrap.innerHTML = list.map((h, idx) => {
-    const i = hikes.indexOf(h);
-    return cardHTML(h, i);
-  }).join('');
-
-  // Attach card events
   wrap.querySelectorAll('.flip-card').forEach(card => {
-    card.addEventListener('click', (e) => {
-      if (e.target.closest('button')) return;
-      card.classList.toggle('flipped');
-    });
+    card.addEventListener('click', (e) => { if (!e.target.closest('button')) card.classList.toggle('flipped'); });
   });
   wrap.querySelectorAll('[data-act="edit-hike"]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const idx = Number(btn.dataset.index);
-      openHikeModal(idx);
-    });
+    btn.addEventListener('click', (e) => { e.stopPropagation(); openHikeModal(Number(btn.dataset.index)); });
   });
   wrap.querySelectorAll('[data-act="map-hike"]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const idx = Number(btn.dataset.index);
-      focusHikeOnMap(idx);
-    });
+    btn.addEventListener('click', (e) => { e.stopPropagation(); focusHikeOnMap(Number(btn.dataset.index)); });
   });
 }
-
 function cardHTML(h, idx) {
   const diffBadge = h.difficulty ? `<span class="badge">${escapeHtml(h.difficulty)}</span>` : '';
-  const regBadge = h.region ? `<span class="badge">${escapeHtml(h.region)}</span>` : '';
+  const regBadge  = h.region ? `<span class="badge">${escapeHtml(h.region)}</span>` : '';
   return `
   <div class="flip-card">
     <div class="flip-inner">
@@ -200,20 +228,18 @@ function cardHTML(h, idx) {
   </div>`;
 }
 
+// ===== Accommodations & Attractions (local only) =====
 function renderAccommodations() {
   const list = document.getElementById('accommodationsList');
   if (!accommodations.length) {
-    list.innerHTML = '<div class="list-item"><div>No accommodations yet. Click "+ Add Accommodation" to get started.</div></div>';
-    return;
+    list.innerHTML = '<div class="list-item"><div>No accommodations yet. Click "+ Add Accommodation".</div></div>'; return;
   }
   list.innerHTML = accommodations.map((a, idx) => `
     <div class="list-item">
       <div>
         <div class="hike-title">${escapeHtml(a.name || 'Accommodation')}</div>
         <div class="meta">
-          ${a.checkin_date ? 'Check-in: ' + escapeHtml(a.checkin_date) : ''}
-          ${a.checkin_time ? ' at ' + escapeHtml(a.checkin_time) : ''}
-          ${a.region ? ' — ' + escapeHtml(a.region) : ''}
+          ${a.checkin_date ? 'Check-in: ' + escapeHtml(a.checkin_date) : ''}${a.checkin_time ? ' at ' + escapeHtml(a.checkin_time) : ''}${a.region ? ' — ' + escapeHtml(a.region) : ''}
         </div>
         ${a.link ? `<div class="meta"><a href="${escapeAttr(a.link)}" target="_blank">Check-in Instructions ↗</a></div>` : ''}
         ${a.notes ? `<div class="meta">Notes: ${escapeHtml(a.notes)}</div>` : ''}
@@ -223,37 +249,20 @@ function renderAccommodations() {
         <button data-act="map-accom" data-index="${idx}">Map</button>
         <button data-act="edit-accom" data-index="${idx}">Edit</button>
       </div>
-    </div>
-  `).join('');
-
-  list.querySelectorAll('[data-act="edit-accom"]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const idx = Number(btn.dataset.index);
-      openAccomModal(idx);
-    });
-  });
-  list.querySelectorAll('[data-act="map-accom"]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const idx = Number(btn.dataset.index);
-      focusAccomOnMap(idx);
-    });
-  });
+    </div>`).join('');
+  list.querySelectorAll('[data-act="edit-accom"]').forEach(btn => btn.addEventListener('click', () => openAccomModal(Number(btn.dataset.index))));
+  list.querySelectorAll('[data-act="map-accom"]').forEach(btn => btn.addEventListener('click', () => focusAccomOnMap(Number(btn.dataset.index))));
 }
-
 function renderAttractions() {
   const list = document.getElementById('attractionsList');
   if (!attractions.length) {
-    list.innerHTML = '<div class="list-item"><div>No attractions yet. Click "+ Add Attraction" to get started.</div></div>';
-    return;
+    list.innerHTML = '<div class="list-item"><div>No attractions yet. Click "+ Add Attraction".</div></div>'; return;
   }
   list.innerHTML = attractions.map((t, idx) => `
     <div class="list-item">
       <div>
         <div class="hike-title">${escapeHtml(t.name || 'Attraction')}</div>
-        <div class="meta">
-          ${t.category ? escapeHtml(t.category) : ''}
-          ${t.region ? ' — ' + escapeHtml(t.region) : ''}
-        </div>
+        <div class="meta">${t.category ? escapeHtml(t.category) : ''}${t.region ? ' — ' + escapeHtml(t.region) : ''}</div>
         ${t.link ? `<div class="meta"><a href="${escapeAttr(t.link)}" target="_blank">More Info ↗</a></div>` : ''}
         ${t.notes ? `<div class="meta">Notes: ${escapeHtml(t.notes)}</div>` : ''}
         ${(t.lat!=null && t.lon!=null) ? `<div class="meta">Coords: ${t.lat.toFixed(5)}, ${t.lon.toFixed(5)}</div>` : ''}
@@ -262,30 +271,15 @@ function renderAttractions() {
         <button data-act="map-attr" data-index="${idx}">Map</button>
         <button data-act="edit-attr" data-index="${idx}">Edit</button>
       </div>
-    </div>
-  `).join('');
-
-  list.querySelectorAll('[data-act="edit-attr"]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const idx = Number(btn.dataset.index);
-      openAttrModal(idx);
-    });
-  });
-  list.querySelectorAll('[data-act="map-attr"]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const idx = Number(btn.dataset.index);
-      focusAttrOnMap(idx);
-    });
-  });
+    </div>`).join('');
+  list.querySelectorAll('[data-act="edit-attr"]').forEach(btn => btn.addEventListener('click', () => openAttrModal(Number(btn.dataset.index))));
+  list.querySelectorAll('[data-act="map-attr"]').forEach(btn => btn.addEventListener('click', () => focusAttrOnMap(Number(btn.dataset.index))));
 }
 
-// Map
+// ===== Map =====
 function initMap() {
   map = L.map('mapContainer').setView([42.7, 0.5], 8);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(map);
-
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
   hikesLayer = L.layerGroup().addTo(map);
   accomLayer = L.layerGroup().addTo(map);
   attrLayer  = L.layerGroup().addTo(map);
@@ -293,51 +287,32 @@ function initMap() {
   map.on('click', (e) => {
     if (!editingContext) return;
     const { type } = editingContext;
-    if (type === 'hike') {
-      document.getElementById('hikeLat').value = e.latlng.lat.toFixed(6);
-      document.getElementById('hikeLon').value = e.latlng.lng.toFixed(6);
-    } else if (type === 'accom') {
-      document.getElementById('accomLat').value = e.latlng.lat.toFixed(6);
-      document.getElementById('accomLon').value = e.latlng.lng.toFixed(6);
-    } else if (type === 'attr') {
-      document.getElementById('attrLat').value = e.latlng.lat.toFixed(6);
-      document.getElementById('attrLon').value = e.latlng.lng.toFixed(6);
-    }
+    const set = (latId, lonId) => { document.getElementById(latId).value = e.latlng.lat.toFixed(6); document.getElementById(lonId).value = e.latlng.lng.toFixed(6); };
+    if (type === 'hike') set('hikeLat','hikeLon');
+    if (type === 'accom') set('accomLat','accomLon');
+    if (type === 'attr') set('attrLat','attrLon');
   });
 
   renderMarkers();
 }
-
 function renderMarkers() {
-  hikesLayer.clearLayers();
-  accomLayer.clearLayers();
-  attrLayer.clearLayers();
-
-  hikes.forEach((h) => {
-    if (h.lat == null || h.lon == null) return;
-    const m = L.circleMarker([h.lat, h.lon], {
-      radius: 8, weight: 2, color: '#4ea3d9', fillColor: '#4ea3d9', fillOpacity: 0.25
-    }).addTo(hikesLayer);
-    m.bindPopup(`<strong>${escapeHtml(h.name || 'Hike')}</strong><br>${h.region ? escapeHtml(h.region) + '<br>' : ''}${h.duration ? escapeHtml(h.duration) + '<br>' : ''}${h.link ? '<a target=_blank href=' + escapeAttr(h.link) + '>More ↗</a>' : ''}`);
+  hikesLayer.clearLayers(); accomLayer.clearLayers(); attrLayer.clearLayers();
+  hikes.forEach(h => {
+    if (h.lat==null || h.lon==null) return;
+    const m = L.circleMarker([h.lat, h.lon], { radius: 8, weight: 2, color: '#4ea3d9', fillColor: '#4ea3d9', fillOpacity: 0.25 }).addTo(hikesLayer);
+    m.bindPopup(`<strong>${escapeHtml(h.name||'Hike')}</strong><br>${h.region ? escapeHtml(h.region)+'<br>' : ''}${h.duration ? escapeHtml(h.duration)+'<br>' : ''}${h.link ? '<a target=_blank href='+escapeAttr(h.link)+'>More ↗</a>' : ''}`);
   });
-
-  accommodations.forEach((a) => {
-    if (a.lat == null || a.lon == null) return;
-    const m = L.circleMarker([a.lat, a.lon], {
-      radius: 8, weight: 2, color: '#efc36f', fillColor: '#efc36f', fillOpacity: 0.25
-    }).addTo(accomLayer);
-    m.bindPopup(`<strong>${escapeHtml(a.name || 'Accommodation')}</strong><br>${a.region ? escapeHtml(a.region) + '<br>' : ''}${a.checkin_date ? 'Check-in: ' + escapeHtml(a.checkin_date) + (a.checkin_time ? ' ' + escapeHtml(a.checkin_time) : '') + '<br>' : ''}${a.link ? '<a target=_blank href=' + escapeAttr(a.link) + '>Instructions ↗</a>' : ''}`);
+  accommodations.forEach(a => {
+    if (a.lat==null || a.lon==null) return;
+    const m = L.circleMarker([a.lat, a.lon], { radius: 8, weight: 2, color: '#efc36f', fillColor: '#efc36f', fillOpacity: 0.25 }).addTo(accomLayer);
+    m.bindPopup(`<strong>${escapeHtml(a.name||'Accommodation')}</strong>`);
   });
-
-  attractions.forEach((t) => {
-    if (t.lat == null || t.lon == null) return;
-    const m = L.circleMarker([t.lat, t.lon], {
-      radius: 8, weight: 2, color: '#d9822b', fillColor: '#d9822b', fillOpacity: 0.25
-    }).addTo(attrLayer);
-    m.bindPopup(`<strong>${escapeHtml(t.name || 'Attraction')}</strong><br>${t.region ? escapeHtml(t.region) + '<br>' : ''}${t.category ? escapeHtml(t.category) + '<br>' : ''}${t.link ? '<a target=_blank href=' + escapeAttr(t.link) + '>More ↗</a>' : ''}`);
+  attractions.forEach(t => {
+    if (t.lat==null || t.lon==null) return;
+    const m = L.circleMarker([t.lat, t.lon], { radius: 8, weight: 2, color: '#d9822b', fillColor: '#d9822b', fillOpacity: 0.25 }).addTo(attrLayer);
+    m.bindPopup(`<strong>${escapeHtml(t.name||'Attraction')}</strong>`);
   });
 }
-
 function fitAll() {
   const bounds = [];
   hikes.forEach(h => { if (h.lat!=null && h.lon!=null) bounds.push([h.lat, h.lon]); });
@@ -346,40 +321,16 @@ function fitAll() {
   if (!bounds.length) return;
   map.fitBounds(bounds, { padding: [24,24] });
 }
+document.getElementById('fitBoundsBtn').addEventListener('click', fitAll);
 
-function focusHikeOnMap(idx) {
-  const h = hikes[idx];
-  if (!h || h.lat==null || h.lon==null) return;
-  document.querySelector('[data-tab="map"]').click();
-  setTimeout(() => { map.setView([h.lat, h.lon], 12); }, 200);
-}
-function focusAccomOnMap(idx) {
-  const a = accommodations[idx];
-  if (!a || a.lat==null || a.lon==null) return;
-  document.querySelector('[data-tab="map"]').click();
-  setTimeout(() => { map.setView([a.lat, a.lon], 12); }, 200);
-}
-function focusAttrOnMap(idx) {
-  const t = attractions[idx];
-  if (!t || t.lat==null || t.lon==null) return;
-  document.querySelector('[data-tab="map"]').click();
-  setTimeout(() => { map.setView([t.lat, t.lon], 12); }, 200);
-}
-
-// Modals
+// ===== Modals & actions =====
 const backdrop = document.getElementById('modalBackdrop');
 const hikeModal = document.getElementById('hikeModal');
 const accomModal = document.getElementById('accomModal');
 const attrModal  = document.getElementById('attrModal');
 
 function openModal(el) { backdrop.classList.remove('hidden'); el.classList.remove('hidden'); }
-function closeModals() {
-  backdrop.classList.add('hidden');
-  hikeModal.classList.add('hidden');
-  accomModal.classList.add('hidden');
-  attrModal.classList.add('hidden');
-  editingContext = null;
-}
+function closeModals() { backdrop.classList.add('hidden'); hikeModal.classList.add('hidden'); accomModal.classList.add('hidden'); attrModal.classList.add('hidden'); editingContext = null; }
 document.querySelectorAll('.close-modal').forEach(btn => btn.addEventListener('click', closeModals));
 backdrop.addEventListener('click', closeModals);
 
@@ -387,6 +338,7 @@ backdrop.addEventListener('click', closeModals);
 document.getElementById('addHikeBtn').addEventListener('click', () => openHikeModal(null));
 document.getElementById('addAccomBtn').addEventListener('click', () => openAccomModal(null));
 document.getElementById('addAttrBtn').addEventListener('click', () => openAttrModal(null));
+document.getElementById('resetHikesBtn').addEventListener('click', cloudWipeAndSeedFromInline);
 
 // Hike modal
 function openHikeModal(index) {
@@ -404,7 +356,7 @@ function openHikeModal(index) {
   document.getElementById('hikeNotes').value = h?.notes || '';
   openModal(hikeModal);
 }
-document.getElementById('saveHikeBtn').addEventListener('click', () => {
+document.getElementById('saveHikeBtn').addEventListener('click', async () => {
   const obj = {
     name: document.getElementById('hikeName').value.trim(),
     region: document.getElementById('hikeRegion').value.trim(),
@@ -419,17 +371,18 @@ document.getElementById('saveHikeBtn').addEventListener('click', () => {
   if (Number.isNaN(obj.lat)) obj.lat = null;
   if (Number.isNaN(obj.lon)) obj.lon = null;
 
-  if (editingContext.index==null) hikes.push(obj); else hikes[editingContext.index] = obj;
-  saveLocal();
-  renderHikeCards(); renderMarkers();
-  closeModals();
+  try {
+    if (editingContext.index==null) await cloudAddHike(obj);
+    else await cloudUpdateHike(editingContext.index, obj);
+    closeModals();
+  } catch (e) {
+    alert('Save failed: ' + e.message);
+  }
 });
-document.getElementById('deleteHikeBtn').addEventListener('click', () => {
+document.getElementById('deleteHikeBtn').addEventListener('click', async () => {
   if (editingContext?.index==null) return closeModals();
-  hikes.splice(editingContext.index, 1);
-  saveLocal();
-  renderHikeCards(); renderMarkers();
-  closeModals();
+  try { await cloudDeleteHike(editingContext.index); closeModals(); }
+  catch (e) { alert('Delete failed: ' + e.message); }
 });
 
 // Accom modal
@@ -460,18 +413,13 @@ document.getElementById('saveAccomBtn').addEventListener('click', () => {
   };
   if (Number.isNaN(obj.lat)) obj.lat = null;
   if (Number.isNaN(obj.lon)) obj.lon = null;
-
   if (editingContext.index==null) accommodations.push(obj); else accommodations[editingContext.index] = obj;
-  saveLocal();
-  renderAccommodations(); renderMarkers();
-  closeModals();
+  saveLocal(); renderAccommodations(); renderMarkers(); closeModals();
 });
 document.getElementById('deleteAccomBtn').addEventListener('click', () => {
   if (editingContext?.index==null) return closeModals();
   accommodations.splice(editingContext.index, 1);
-  saveLocal();
-  renderAccommodations(); renderMarkers();
-  closeModals();
+  saveLocal(); renderAccommodations(); renderMarkers(); closeModals();
 });
 
 // Attraction modal
@@ -500,21 +448,16 @@ document.getElementById('saveAttrBtn').addEventListener('click', () => {
   };
   if (Number.isNaN(obj.lat)) obj.lat = null;
   if (Number.isNaN(obj.lon)) obj.lon = null;
-
   if (editingContext.index==null) attractions.push(obj); else attractions[editingContext.index] = obj;
-  saveLocal();
-  renderAttractions(); renderMarkers();
-  closeModals();
+  saveLocal(); renderAttractions(); renderMarkers(); closeModals();
 });
 document.getElementById('deleteAttrBtn').addEventListener('click', () => {
   if (editingContext?.index==null) return closeModals();
   attractions.splice(editingContext.index, 1);
-  saveLocal();
-  renderAttractions(); renderMarkers();
-  closeModals();
+  saveLocal(); renderAttractions(); renderMarkers(); closeModals();
 });
 
-// Data tab buttons
+// Data tab (JSON import/export)
 document.getElementById('saveLocalBtn').addEventListener('click', saveLocal);
 document.getElementById('clearLocalBtn').addEventListener('click', () => {
   if (!confirm('Clear all locally saved data?')) return;
@@ -522,111 +465,86 @@ document.getElementById('clearLocalBtn').addEventListener('click', () => {
   localStorage.removeItem(LS_ACCOM);
   localStorage.removeItem(LS_ATTR);
   localStorage.removeItem(LS_HERO);
+  localStorage.removeItem(LS_BACKEND);
   location.reload();
 });
-
 document.getElementById('exportJsonBtn').addEventListener('click', () => {
-  const payload = { hikes, accommodations, attractions, hero_image_url: localStorage.getItem(LS_HERO) || null };
+  const payload = { hikes, accommodations, attractions, hero_image_url: localStorage.getItem(LS_HERO) || null, backend_url: getBackendUrl() };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'pyrenees-data.json';
-  a.click();
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'pyrenees-data.json'; a.click();
 });
 document.getElementById('importJsonBtn').addEventListener('click', () => document.getElementById('importJsonInput').click());
 document.getElementById('importJsonInput').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+  const file = e.target.files[0]; if (!file) return;
   const text = await file.text();
   try {
     const data = JSON.parse(text);
     if (data.hikes) hikes = data.hikes.map(normalizeHike);
     if (data.accommodations) accommodations = data.accommodations;
     if (data.attractions) attractions = data.attractions;
-    if (typeof data.hero_image_url === 'string') {
-      localStorage.setItem(LS_HERO, data.hero_image_url);
-      applyHeroImage();
-    }
-    saveLocal();
-    renderHikeCards(); renderAccommodations(); renderAttractions(); renderMarkers();
-    alert('Imported JSON successfully.');
-  } catch (err) {
-    alert('Invalid JSON file.');
-  }
+    if (typeof data.hero_image_url === 'string') { localStorage.setItem(LS_HERO, data.hero_image_url); applyHeroImage(); }
+    if (typeof data.backend_url === 'string') { localStorage.setItem(LS_BACKEND, data.backend_url); }
+    saveLocal(); renderHikeCards(); renderAccommodations(); renderAttractions(); renderMarkers();
+    alert('Imported JSON.');
+  } catch { alert('Invalid JSON.'); }
 });
 
-// Excel import (Sheet 2 -> hikes)
+// Excel import → write to cloud (wipe then add items)
 document.getElementById('importXlsxBtn').addEventListener('click', () => document.getElementById('importXlsxInput').click());
 document.getElementById('importXlsxInput').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+  const file = e.target.files[0]; if (!file) return;
   const data = await file.arrayBuffer();
   const workbook = XLSX.read(data);
-  const sheetName = workbook.SheetNames[1] || workbook.SheetNames[0]; // Sheet 2 by default
+  const sheetName = workbook.SheetNames[1] || workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
-  const json = XLSX.utils.sheet_to_json(sheet);
-  hikes = json.map(normalizeHike);
-  saveLocal();
-  renderHikeCards(); renderMarkers();
-  alert('Imported Excel sheet: ' + sheetName);
+  const json = XLSX.utils.sheet_to_json(sheet).map(normalizeHike);
+  try {
+    await cloudWipeAndSeedFromInline(); // clear first using same flow
+    for (const h of json) { await cloudAddHike(h); }
+    alert('Excel imported to cloud: ' + sheetName);
+  } catch (err) {
+    alert('Excel import failed: ' + err.message);
+  }
 });
-
-// Hero image URL/upload controls
-function initHeroControls() {
-  const urlBtn = document.getElementById('saveHeroBtn');
-  const urlInput = document.getElementById('heroUrlInput');
-  const uploadBtn = document.getElementById('importHeroBtn');
-  const uploadInput = document.getElementById('importHeroInput');
-
-  if (urlBtn && urlInput) {
-    urlBtn.addEventListener('click', () => {
-      const v = urlInput.value.trim();
-      if (!v) return;
-      localStorage.setItem(LS_HERO, v);
-      applyHeroImage();
-      alert('Hero image updated from URL!');
-    });
-    const stored = localStorage.getItem(LS_HERO);
-    if (stored && stored.startsWith('http')) urlInput.value = stored;
-  }
-
-  if (uploadBtn && uploadInput) {
-    uploadBtn.addEventListener('click', () => uploadInput.click());
-    uploadInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        localStorage.setItem(LS_HERO, reader.result); // data URL
-        applyHeroImage();
-        alert('Hero image updated from upload!');
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-}
 
 // Escape helpers
 function escapeHtml(s) {
   if (s==null) return '';
-  return String(s)
-    .replaceAll('&','&amp;')
-    .replaceAll('<','&lt;')
-    .replaceAll('>','&gt;')
-    .replaceAll('"','&quot;')
-    .replaceAll("'",'&#39;');
+  return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 }
 function escapeAttr(s) { return escapeHtml(s); }
 
-// Init
-(async function init() {
-  loadLocal();
-  await loadFromFile();
-  initHeroControls();
-  applyHeroImage(); // only overrides if a URL/upload is stored
+// Map focus helpers
+function focusHikeOnMap(idx) { const h = hikes[idx]; if (!h || h.lat==null || h.lon==null) return; document.querySelector('[data-tab="map"]').click(); setTimeout(() => { map.setView([h.lat, h.lon], 12); }, 200); }
+function focusAccomOnMap(idx) { const a = accommodations[idx]; if (!a || a.lat==null || a.lon==null) return; document.querySelector('[data-tab="map"]').click(); setTimeout(() => { map.setView([a.lat, a.lon], 12); }, 200); }
+function focusAttrOnMap(idx) { const t = attractions[idx]; if (!t || t.lat==null || t.lon==null) return; document.querySelector('[data-tab="map"]').click(); setTimeout(() => { map.setView([t.lat, t.lon], 12); }, 200); }
 
-  renderHikeCards();
+// Refresh from cloud
+async function refreshFromCloud() {
+  try { await cloudListHikes(); }
+  catch (e) { console.warn('Cloud load failed:', e); renderHikeCards(); }
+}
+
+// ===== Init =====
+(async function init() {
+  // Prefill inputs if stored
+  const be = localStorage.getItem(LS_BACKEND);
+  if (be) { const i = document.getElementById('backendUrlInput'); if (i) i.value = be; }
+  const hero = localStorage.getItem(LS_HERO);
+  if (hero) { const i = document.getElementById('heroUrlInput'); if (i) i.value = hero; }
+
+  loadLocal();
+  applyHeroImage();
   renderAccommodations();
   renderAttractions();
   initMap();
+
+  // Load hikes from cloud (shared). If no backend URL yet, show inline until set.
+  if (getBackendUrl() && getBackendUrl() !== 'YOUR_WEB_APP_URL_HERE') {
+    await refreshFromCloud();
+  } else {
+    // fallback: use bundled (local-only) until backend is set
+    if (Array.isArray(window.BUNDLED_HIKES)) hikes = window.BUNDLED_HIKES.map(normalizeHike);
+    renderHikeCards(); renderMarkers();
+  }
 })();
