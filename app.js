@@ -1,5 +1,6 @@
 /* ===========================
    Robust app.js (with hikes.ls / hikes.json fallback)
+   Backend default: your Apps Script URL
    =========================== */
 
 // ----- Local storage keys -----
@@ -41,9 +42,11 @@ function loadLocal() {
   safe(() => { const t = localStorage.getItem(LS_ATTR);  if (t) attractions = JSON.parse(t); });
 }
 function getBackendUrl() {
-  // Your Apps Script URL as a default fallback
-  return localStorage.getItem(LS_BACKEND)
-      || 'https://script.google.com/macros/s/AKfycbwQvaXKkgu_uusyZslagfG88WOmUy0zs5_JHsfELEvp3HUVBcI-Emv9IlhCpTb9UUvZKw/exec';
+  // ✅ Your live Apps Script URL as default fallback
+  return (
+    localStorage.getItem(LS_BACKEND) ||
+    'https://script.google.com/macros/s/AKfycbxOj9V_UlIbL9e2MM4UKniTh3Zr4wTv14u3xHDjhToQxCgVpqyFgAbiCt2VMKy4yafu/exec'
+  );
 }
 
 // ----- JSONP (no CORS preflight) -----
@@ -154,7 +157,6 @@ async function tryFetchJson(url) {
   try {
     const res = await fetch(url, { cache: 'no-cache' });
     if (!res.ok) return null;
-    // If .ls is plain text, still try JSON.parse
     const ct = res.headers.get('content-type') || '';
     if (ct.includes('application/json')) return await res.json();
     const text = await res.text();
@@ -166,7 +168,7 @@ async function loadLocalHikesFallback() {
     hikes = window.BUNDLED_HIKES.map(normalizeHike);
     return true;
   }
-  let data = await tryFetchJson('hikes.ls'); // your request
+  let data = await tryFetchJson('hikes.ls');
   if (!data) data = await tryFetchJson('hikes.json');
   if (Array.isArray(data) && data.length) {
     hikes = data.map(normalizeHike);
@@ -175,7 +177,7 @@ async function loadLocalHikesFallback() {
   return false;
 }
 
-// ----- Tabs (guarded) -----
+// ----- Tabs -----
 function initTabs() {
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
