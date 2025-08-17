@@ -2,12 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1"
+  />
   <title>Pyrenees Trip Dashboard</title>
   <link rel="stylesheet" href="styles.css" />
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-  <!-- Fonts -->
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin=""/>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -24,7 +28,6 @@
     </nav>
   </header>
 
-  <!-- Image-only hero (uses hero.jpg by default) -->
   <section class="hero" role="img" aria-label="Pyrenees mountains"></section>
 
   <main class="container">
@@ -36,7 +39,7 @@
         </div>
         <div class="right">
           <button id="addHikeBtn">+ Add Hike</button>
-          <button id="resetHikesBtn" title="Reload hikes.json">Reset to File</button>
+          <button id="resetHikesBtn" title="Overwrite cloud with bundled hikes">Reset to Inline</button>
         </div>
       </div>
       <div id="hikeCards" class="card-grid"></div>
@@ -80,11 +83,22 @@
       <h2 class="sr-only">Data</h2>
       <div class="panel">
         <div class="panel-col">
-          <h3>Local Save</h3>
-          <p>All changes are saved in your browser (no password needed).</p>
-          <button id="saveLocalBtn">Save Now</button>
-          <button id="clearLocalBtn" class="danger">Clear Local Data</button>
-          <p class="hint">Tip: Use Export to download a backup of your changes.</p>
+          <h3>Cloud Backend</h3>
+          <label class="stack">
+            <span>Apps Script Web App URL (ends with <code>/exec</code>)</span>
+            <input id="backendUrlInput" type="url"
+              placeholder="https://script.google.com/macros/s/…/exec" />
+          </label>
+          <div class="io-row">
+            <button id="saveBackendBtn" class="primary">Use This Backend</button>
+            <button id="refreshCloudBtn">Reload from Cloud</button>
+          </div>
+          <div class="io-row">
+            <button id="wipeHikesBtn" class="danger">Wipe Hikes (Cloud)</button>
+            <button id="wipeAccomBtn" class="danger">Wipe Accommodations (Cloud)</button>
+            <button id="wipeAttrBtn" class="danger">Wipe Attractions (Cloud)</button>
+          </div>
+          <p class="hint">Hikes, Accommodations, and Attractions are shared via Google Sheets.</p>
         </div>
 
         <div class="panel-col">
@@ -96,23 +110,21 @@
           </div>
           <div class="io-row">
             <input type="file" id="importXlsxInput" accept=".xlsx, .xls" hidden />
-            <button id="importXlsxBtn">Import Excel (Sheet 2)</button>
+            <button id="importXlsxBtn">Import Excel (Sheet 2 → Hikes)</button>
           </div>
         </div>
 
-        <!-- Hero image controls: use local hero.jpg, a URL, or upload -->
         <div class="panel-col">
           <h3>Hero Image</h3>
           <label class="stack">
             <span>Hero image URL (optional — overrides hero.jpg)</span>
-            <input id="heroUrlInput" type="url" placeholder="https://raw.githubusercontent.com/you/repo/branch/pyrenees.jpg" />
+            <input id="heroUrlInput" type="url" placeholder="https://.../pyrenees.jpg" />
           </label>
           <div class="io-row">
             <button id="saveHeroBtn" class="primary">Use This URL</button>
             <input type="file" id="importHeroInput" accept="image/*" hidden />
             <button id="importHeroBtn">Upload Image (JPG/PNG)</button>
           </div>
-          <p class="hint">Priority: Upload → URL → local <code>hero.jpg</code>.</p>
         </div>
       </div>
     </section>
@@ -143,7 +155,7 @@
         <label>Longitude<input id="hikeLon" type="number" step="any" /></label>
       </div>
       <label>Notes<textarea id="hikeNotes" rows="3"></textarea></label>
-      <div class="hint">Tip: Click on the map to fill Lat/Lon.</div>
+      <div class="hint">Tip: Click the map to fill Lat/Lon.</div>
     </div>
     <div class="modal-footer">
       <button id="deleteHikeBtn" class="danger">Delete</button>
@@ -174,7 +186,7 @@
         <label>Longitude<input id="accomLon" type="number" step="any" /></label>
       </div>
       <label>Notes<textarea id="accomNotes" rows="3"></textarea></label>
-      <div class="hint">Tip: Click on the map to fill Lat/Lon.</div>
+      <div class="hint">Tip: Click the map to fill Lat/Lon.</div>
     </div>
     <div class="modal-footer">
       <button id="deleteAccomBtn" class="danger">Delete</button>
@@ -204,7 +216,7 @@
         <label>Longitude<input id="attrLon" type="number" step="any" /></label>
       </div>
       <label>Notes<textarea id="attrNotes" rows="3"></textarea></label>
-      <div class="hint">Tip: Click on the map to fill Lat/Lon.</div>
+      <div class="hint">Tip: Click the map to fill Lat/Lon.</div>
     </div>
     <div class="modal-footer">
       <button id="deleteAttrBtn" class="danger">Delete</button>
@@ -214,26 +226,27 @@
     </div>
   </div>
 
-  <!-- Inline hikes (from your Sheet 2 earlier) -->
+  <!-- Inline hikes (seed) -->
   <script>
     window.BUNDLED_HIKES = [
       {"name":"Cirque d'Estaubé","region":"French Pyrenees","duration":"6 km or 12 km to the end to to Pla d'Ailhet","difficulty":"Easy","starting_point":null,"link":"https://www.enfant-en-voyage.com/en/hiking-in-the-Cirque-d%27Estaube/","lat":null,"lon":null,"notes":null},
       {"name":"Cirque of Troumouse","region":"French Pyrenees","duration":"5 km","difficulty":"Easy","starting_point":"Toll road to start point","link":"https://www.enfant-en-voyage.com/en/troumouse-circus-hiking/","lat":null,"lon":null,"notes":"Toll road to start point"},
-      {"name":"Pahule Peak and Espécières Lake","region":"French Pyrenees","duration":null,"difficulty":null,"starting_point":"Starting from the parking lot of the Col de Tentes\nCan visit also Espécières lake 10 min walk","link":null,"lat":null,"lon":null,"notes":"Starting from the parking lot of the Col de Tentes\nCan visit also Espécières lake 10 min walk"},
-      {"name":"Cirque de Lys","region":"French Pyrenees","duration":"3 hours","difficulty":"Easy","starting_point":"Starting point - Pont de Crabiou","link":"https://www.enfant-en-voyage.com/en/lys-circus-hiking/","lat":null,"lon":null,"notes":"Starting point - Pont de Crabiou"},
-      {"name":"the Larri in the Pineta Valley","region":"Ordessa","duration":"4 hours","difficulty":"Easy","starting_point":"From Bielsa take road HU-V-6402 in the valley until parking at the end","link":"https://www.enfant-en-voyage.com/en/hiking-pineta-valley/","lat":null,"lon":null,"notes":"From Bielsa take road HU-V-6402 in the valley until parking at the end"},
-      {"name":"Pic de la Pahule","region":"French Pyrenees","duration":null,"difficulty":null,"starting_point":"Start point Col de Tentes","link":"https://www.enfant-en-voyage.com/en/circus-gavarnie-family-hiking/#D'autres%20randonn%C3%A9es%20en%20famille%20dans%20les%20Pyr%C3%A9n%C3%A9es%20et%20ailleurs","lat":null,"lon":null,"notes":"Start point Col de Tentes"},
-      {"name":"קניון אניסקלו (Anisclo)","region":"Ordessa","duration":null,"difficulty":null,"starting_point":null,"link":null,"lat":null,"lon":null,"notes":"מגיעים ל Escalona, נוסעים לכיוון כביש הנוף HU-631 לכיוון Passo Vio (אבל לא פונים אליה) ואז ממשיכים עם שילוט די פשוט לאניסקלו."},
-      {"name":"שביל המנזרים של טלה","region":"Ordessa","duration":null,"difficulty":null,"starting_point":null,"link":null,"lat":null,"lon":null,"notes":null},
-      {"name":"Estany de Gerber","region":"Aigüestortes","duration":"3.5 km","difficulty":"Easy","starting_point":null,"link":"https://www.komoot.com/guide/175014/hiking-around-estany-de-gerber#guide_tour_e1266310582","lat":null,"lon":null,"notes":null},
-      {"name":"Artiga de Lin","region":"Aigüestortes","duration":"6 km","difficulty":"Easy","starting_point":"Begin the hike in the car park of Uelhs deth Joeu","link":"https://www.visitvaldaran.com/en/item/artiga-lin-uelhs-deth-joeu/","lat":null,"lon":null,"notes":"Extra link: https://www.komoot.com/tour/963841399"},
-      {"name":"The Horsetail","region":"Ordessa","duration":null,"difficulty":null,"starting_point":null,"link":null,"lat":null,"lon":null,"notes":null},
-      {"name":"Llacs de Tristaina","region":"Andorra","duration":"4.4 km full trail","difficulty":"Moderate","starting_point":"Can start at top or take cable car up.  Hike to 1st lake is easy 40 min","link":null,"lat":null,"lon":null,"notes":"Extra difficulty note: 1st part Easy"}
+      {"name":"Pahule Peak and Espécières Lake","region":"French Pyrenees","starting_point":"Starting from the parking lot of the Col de Tentes\nCan visit also Espécières lake 10 min walk","notes":"Starting from the parking lot of the Col de Tentes\nCan visit also Espécières lake 10 min walk"},
+      {"name":"Cirque de Lys","region":"French Pyrenees","duration":"3 hours","difficulty":"Easy","starting_point":"Starting point - Pont de Crabiou","link":"https://www.enfant-en-voyage.com/en/lys-circus-hiking/","notes":"Starting point - Pont de Crabiou"},
+      {"name":"the Larri in the Pineta Valley","region":"Ordessa","duration":"4 hours","difficulty":"Easy","starting_point":"From Bielsa take road HU-V-6402 in the valley until parking at the end","link":"https://www.enfant-en-voyage.com/en/hiking-pineta-valley/","notes":"From Bielsa take road HU-V-6402 in the valley until parking at the end"},
+      {"name":"Pic de la Pahule","region":"French Pyrenees","starting_point":"Start point Col de Tentes","link":"https://www.enfant-en-voyage.com/en/circus-gavarnie-family-hiking/#D'autres%20randonn%C3%A9es%20en%20famille%20dans%20les%20Pyr%C3%A9n%C3%A9es%20et%20ailleurs","notes":"Start point Col de Tentes"},
+      {"name":"קניון אניסקלו (Anisclo)","region":"Ordessa","notes":"מגיעים ל Escalona, נוסעים לכיוון כביש הנוף HU-631 לכיוון Passo Vio (אבל לא פונים אליה) ואז ממשיכים עם שילוט די פשוט לאניסקלו."},
+      {"name":"שביל המנזרים של טלה","region":"Ordessa"},
+      {"name":"Estany de Gerber","region":"Aigüestortes","duration":"3.5 km","difficulty":"Easy","link":"https://www.komoot.com/guide/175014/hiking-around-estany-de-gerber#guide_tour_e1266310582"},
+      {"name":"Artiga de Lin","region":"Aigüestortes","duration":"6 km","difficulty":"Easy","starting_point":"Begin the hike in the car park of Uelhs deth Joeu","link":"https://www.visitvaldaran.com/en/item/artiga-lin-uelhs-deth-joeu/","notes":"Extra link: https://www.komoot.com/tour/963841399"},
+      {"name":"The Horsetail","region":"Ordessa"},
+      {"name":"Llacs de Tristaina","region":"Andorra","duration":"4.4 km full trail","difficulty":"Moderate","starting_point":"Can start at top or take cable car up.  Hike to 1st lake is easy 40 min","notes":"Extra difficulty note: 1st part Easy"}
     ];
   </script>
 
-  <!-- Leaflet & SheetJS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+          crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="app.js"></script>
 </body>
