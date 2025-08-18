@@ -1,5 +1,5 @@
 /* =======================================
-   Pyrenees Trip App — robust single-init
+   Pyrenees Trip App — duplicate tabs hard fix
    ======================================= */
 (() => {
   if (window.__PYRENEES_APP_INIT__) {
@@ -21,7 +21,7 @@
   let map, hikesLayer, accomLayer, attrLayer;
   let editingContext = null;
   let currentRegion = '';
-  let isRefreshing = false; // 🔒 prevents overlapping refreshes
+  let isRefreshing = false;
 
   // ----- Helpers -----
   const $  = (id) => document.getElementById(id);
@@ -31,20 +31,10 @@
     .replaceAll('>','&gt;').replaceAll('"','&quot;')
     .replaceAll("'",'&#39;');
   const escapeAttr = escapeHtml;
+  const trimOrEmpty = (v) => (v==null ? '' : String(v).trim());
+  const toNum = (v) => (v==='' || v==null || Number.isNaN(Number(v))) ? null : Number(v);
 
-  // Remove any duplicated top tabs if the DOM had them injected twice
-  function dedupeTopTabs() {
-    const nav = document.querySelector('header .nav');
-    if (!nav) return;
-    const seen = new Set();
-    [...nav.querySelectorAll('.tab-btn')].forEach(btn => {
-      const key = btn.dataset.tab || btn.textContent.trim();
-      if (seen.has(key)) btn.remove();
-      else seen.add(key);
-    });
-  }
-
-  // ----- Backend URL (hard-coded default, user can override in UI) -----
+  // ----- Backend URL (hard-coded default; UI can override) -----
   function getBackendUrl() {
     return localStorage.getItem(LS_BACKEND)
       || 'https://script.google.com/macros/s/AKfycbzg2cc47dGtXS0AkHMJOhCGPlRsucGegFS_vTbDPB-5EMEEG2Ye5emi0fD8mBlDGEBAEg/exec';
@@ -73,10 +63,7 @@
     });
   }
 
-  // ----- Normalizers (with trimming) -----
-  const trimOrEmpty = (v) => (v==null ? '' : String(v).trim());
-  const toNum = (v) => (v==='' || v==null || Number.isNaN(Number(v))) ? null : Number(v);
-
+  // ----- Normalizers -----
   function normalizeHike(raw) {
     const get = (o, keys) => { for (const k of keys) { const v = o?.[k]; if (v != null && v !== '') return v; } return ''; };
     return {
@@ -121,11 +108,11 @@
   }
 
   // ----- Cloud API -----
-  async function cloudList(entity)  { return jsonp(getBackendUrl(), { op: 'list', entity }); }
-  async function cloudAdd(entity,o){ return jsonp(getBackendUrl(), { op: 'add', entity, data: JSON.stringify(o) }); }
-  async function cloudUpdate(entity,o){ return jsonp(getBackendUrl(), { op: 'update', entity, data: JSON.stringify(o) }); }
-  async function cloudDelete(entity,id){ return jsonp(getBackendUrl(), { op: 'delete', entity, id }); }
-  async function cloudWipe(entity)  { return jsonp(getBackendUrl(), { op: 'wipe', entity }); }
+  async function cloudList(entity)    { return jsonp(getBackendUrl(), { op: 'list', entity }); }
+  async function cloudAdd(entity, o)  { return jsonp(getBackendUrl(), { op: 'add', entity, data: JSON.stringify(o) }); }
+  async function cloudUpdate(e, o)    { return jsonp(getBackendUrl(), { op: 'update', entity: e, data: JSON.stringify(o) }); }
+  async function cloudDelete(e, id)   { return jsonp(getBackendUrl(), { op: 'delete', entity: e, id }); }
+  async function cloudWipe(entity)    { return jsonp(getBackendUrl(), { op: 'wipe', entity }); }
 
   // ----- Cloud wrappers -----
   async function loadHikesFromCloud() {
@@ -147,48 +134,72 @@
     attrIds = attractions.map(a => a.id || '');
   }
 
-  async function addHikeCloud(o){ const r=await cloudAdd('hikes',o); if(!r?.ok) throw new Error(r?.error||'Add failed'); await loadHikesFromCloud(); }
-  async function updHikeCloud(i,o){ o.id = hikeIds[i]; const r=await cloudUpdate('hikes',o); if(!r?.ok) throw new Error(r?.error||'Update failed'); await loadHikesFromCloud(); }
-  async function delHikeCloud(i){ const r=await cloudDelete('hikes',hikeIds[i]); if(!r?.ok) throw new Error(r?.error||'Delete failed'); await loadHikesFromCloud(); }
+  async function addHikeCloud(o)   { const r=await cloudAdd('hikes',o); if(!r?.ok) throw new Error(r?.error||'Add failed'); await loadHikesFromCloud(); }
+  async function updHikeCloud(i,o) { o.id = hikeIds[i]; const r=await cloudUpdate('hikes',o); if(!r?.ok) throw new Error(r?.error||'Update failed'); await loadHikesFromCloud(); }
+  async function delHikeCloud(i)   { const r=await cloudDelete('hikes',hikeIds[i]); if(!r?.ok) throw new Error(r?.error||'Delete failed'); await loadHikesFromCloud(); }
 
-  async function addAccomCloud(o){ const r=await cloudAdd('accommodations',o); if(!r?.ok) throw new Error(r?.error||'Add failed'); await loadAccomFromCloud(); }
+  async function addAccomCloud(o)  { const r=await cloudAdd('accommodations',o); if(!r?.ok) throw new Error(r?.error||'Add failed'); await loadAccomFromCloud(); }
   async function updAccomCloud(i,o){ o.id = accomIds[i]; const r=await cloudUpdate('accommodations',o); if(!r?.ok) throw new Error(r?.error||'Update failed'); await loadAccomFromCloud(); }
-  async function delAccomCloud(i){ const r=await cloudDelete('accommodations',accomIds[i]); if(!r?.ok) throw new Error(r?.error||'Delete failed'); await loadAccomFromCloud(); }
+  async function delAccomCloud(i)  { const r=await cloudDelete('accommodations',accomIds[i]); if(!r?.ok) throw new Error(r?.error||'Delete failed'); await loadAccomFromCloud(); }
 
-  async function addAttrCloud(o){ const r=await cloudAdd('attractions',o); if(!r?.ok) throw new Error(r?.error||'Add failed'); await loadAttrFromCloud(); }
-  async function updAttrCloud(i,o){ o.id = attrIds[i]; const r=await cloudUpdate('attractions',o); if(!r?.ok) throw new Error(r?.error||'Update failed'); await loadAttrFromCloud(); }
-  async function delAttrCloud(i){ const r=await cloudDelete('attractions',attrIds[i]); if(!r?.ok) throw new Error(r?.error||'Delete failed'); await loadAttrFromCloud(); }
+  async function addAttrCloud(o)   { const r=await cloudAdd('attractions',o); if(!r?.ok) throw new Error(r?.error||'Add failed'); await loadAttrFromCloud(); }
+  async function updAttrCloud(i,o) { o.id = attrIds[i]; const r=await cloudUpdate('attractions',o); if(!r?.ok) throw new Error(r?.error||'Update failed'); await loadAttrFromCloud(); }
+  async function delAttrCloud(i)   { const r=await cloudDelete('attractions',attrIds[i]); if(!r?.ok) throw new Error(r?.error||'Delete failed'); await loadAttrFromCloud(); }
 
-  // ----- Hero image -----
-  function applyHeroImage() {
-    const url = localStorage.getItem(LS_HERO);
-    const hero = document.querySelector('.hero');
-    if (!hero || !url) return;
-    const overlay = 'linear-gradient(to bottom, rgba(6,18,26,0.15), rgba(6,18,26,0.55)), ';
-    hero.style.backgroundImage = overlay + `url("${url}")`;
-  }
-  (function initHeroControls(){
-    on('saveHeroBtn', 'click', () => {
-      const url = $('heroUrlInput')?.value.trim();
-      if (!url) return;
-      localStorage.setItem(LS_HERO, url);
-      applyHeroImage();
-      alert('Hero image updated!');
+  // ----- Top bar hard normalization (DESTROYS duplicates) -----
+  const CANON_TABS = [
+    { id: 'hikes',          label: 'Hikes' },
+    { id: 'accommodations', label: 'Accommodations' },
+    { id: 'attractions',    label: 'Attractions' },
+    { id: 'map',            label: 'Map' },
+    { id: 'data',           label: 'Data' }
+  ];
+
+  function normalizeTopbar() {
+    // Keep only the first header.topbar, remove the rest.
+    const headers = [...document.querySelectorAll('header.topbar')];
+    headers.forEach((h, i) => { if (i > 0) h.remove(); });
+
+    let header = headers[0] || document.querySelector('header.topbar');
+    if (!header) {
+      // If somehow missing, create it at the top of body to avoid duplication forever.
+      header = document.createElement('header');
+      header.className = 'topbar';
+      const title = document.createElement('div');
+      title.className = 'title';
+      title.textContent = 'Pyrenees Family Trip';
+      const nav = document.createElement('nav');
+      nav.className = 'nav';
+      header.append(title, nav);
+      document.body.prepend(header);
+    }
+
+    // Remove any stray navs not inside the single header.
+    [...document.querySelectorAll('body .nav')].forEach(n => {
+      if (!header.contains(n)) n.remove();
     });
-    on('importHeroBtn', 'click', () => $('importHeroInput')?.click());
-    on('importHeroInput', 'change', (e) => {
-      const file = e.target.files?.[0]; if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => { localStorage.setItem(LS_HERO, reader.result); applyHeroImage(); alert('Hero image uploaded!'); };
-      reader.readAsDataURL(file);
-    });
-  })();
 
-  // ----- UI: Tabs -----
-  function wireTopTabs() {
-    document.querySelectorAll('.tab-btn').forEach(btn => {
+    // Rebuild the header's nav from the canonical set.
+    const nav = header.querySelector('.nav') || header.appendChild(Object.assign(document.createElement('nav'), { className: 'nav' }));
+    nav.innerHTML = CANON_TABS.map((t, i) =>
+      `<button class="tab-btn ${i===0?'active':''}" data-tab="${t.id}">${t.label}</button>`
+    ).join('');
+
+    // Ensure we have exactly one section per tab id; if duplicates exist, keep first and remove the rest.
+    CANON_TABS.forEach(t => {
+      const sections = [...document.querySelectorAll(`#${CSS.escape(t.id)}`)];
+      sections.forEach((sec, i) => { if (i > 0) sec.remove(); });
+    });
+
+    // Make the first tab's section visible; hide others.
+    document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('visible'));
+    const first = document.getElementById(CANON_TABS[0].id);
+    if (first) first.classList.add('visible');
+
+    // Wire tab clicks (idempotent since we rebuilt the nav).
+    nav.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        nav.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const tab = btn.dataset.tab;
         document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('visible'));
@@ -201,10 +212,8 @@
   // ----- Regions & hike cards -----
   function getRegions() {
     return Array.from(new Set(hikes
-      .map(h => h.region)
-      .map(v => (v || '').trim())
-      .filter(v => v)
-      .map(v => v) // already trimmed
+      .map(h => (h.region || '').trim())
+      .filter(Boolean)
     )).sort((a,b)=>a.localeCompare(b));
   }
   function renderRegionTabs() {
@@ -548,7 +557,7 @@
 
   // ----- Init & refresh -----
   async function refreshAllFromCloud() {
-    if (isRefreshing) return;   // 🔒 prevent storm of loads
+    if (isRefreshing) return;
     isRefreshing = true;
     try {
       await Promise.all([loadHikesFromCloud(), loadAccomFromCloud(), loadAttrFromCloud()]);
@@ -561,25 +570,26 @@
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
-    // Clean up any duplicated top tabs from duplicate HTML or prior inits
-    dedupeTopTabs();
-    wireTopTabs();
+    // Brutally normalize the header/nav to a single canonical set
+    normalizeTopbar();
 
     // Prefill inputs if present
     const be = localStorage.getItem(LS_BACKEND) || getBackendUrl();
     const beInput = $('backendUrlInput'); if (beInput) beInput.value = be;
     const hero = localStorage.getItem(LS_HERO); if (hero) { const i = $('heroUrlInput'); if (i) i.value = hero; }
 
+    // Hero & Map
     applyHeroImage();
     initMap();
 
+    // Load from cloud
     await refreshAllFromCloud();
 
-    // Optional: auto-refresh every 30s so edits elsewhere appear
+    // Optional: auto-refresh
     // setInterval(refreshAllFromCloud, 30000);
   });
 
-  // Extra: seed hikes from inline into cloud
+  // Reset hikes from inline seed (optional)
   on('resetHikesBtn','click', async () => {
     if (!confirm('Overwrite all cloud Hikes with the inline seed?')) return;
     await cloudWipe('hikes');
