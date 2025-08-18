@@ -1,253 +1,167 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1"
-  />
-  <title>Pyrenees Trip Dashboard</title>
-  <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-        crossorigin=""/>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
-</head>
-<body>
-  <header class="topbar">
-    <div class="title">Pyrenees Family Trip</div>
-    <nav class="nav">
-      <button class="tab-btn active" data-tab="hikes">Hikes</button>
-      <button class="tab-btn" data-tab="accommodations">Accommodations</button>
-      <button class="tab-btn" data-tab="attractions">Attractions</button>
-      <button class="tab-btn" data-tab="map">Map</button>
-      <button class="tab-btn" data-tab="data">Data</button>
-    </nav>
-  </header>
+:root {
+  --bg: #0e1c22; --bg-2: #122834; --muted: #cbd9e4; --text: #f3f8fb;
+  --primary: #4ea3d9; --accent: #efc36f; --ring: rgba(78,163,217,0.35);
+  --card-blue-1: #eaf5ff; --card-blue-2: #d9ecff; --card-ink: #0b2542;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: radial-gradient(1200px 600px at 10% 0%, var(--bg-2) 0%, var(--bg) 60%, #0a1720 100%);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+}
+body.no-scroll { overflow: hidden; }
+.container { max-width: 1000px; margin: 0 auto; padding: 14px 12px 26px; }
 
-  <section class="hero" role="img" aria-label="Pyrenees mountains"></section>
+/* Top bar */
+.topbar {
+  position: sticky; top: 0; z-index: 20; display: flex; flex-direction: column;
+  align-items: center; gap: 6px; padding: max(8px, env(safe-area-inset-top)) 10px 10px;
+  background: rgba(10, 28, 36, 0.92); backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255,255,255,0.06); margin: 0;
+}
+.title { font-weight: 800; letter-spacing: .4px; text-align: center; font-size: 1.08rem; }
+.nav { display: flex; overflow-x: auto; justify-content: center; gap: 10px; padding: 0; margin: 0; scrollbar-width: none; width: 100%; }
+.nav::-webkit-scrollbar { display: none; }
+.nav .tab-btn {
+  padding: 12px 16px; font-size: 1.02rem; border-radius: 14px; flex: 0 0 auto;
+  background: #123041; color: var(--text); border: 1px solid rgba(255,255,255,0.10); cursor: pointer; transition: .2s;
+}
+.nav .tab-btn.active, .nav .tab-btn:hover {
+  border-color: var(--primary); color: var(--primary); box-shadow: 0 0 0 3px var(--ring);
+  transform: translateY(-1px);
+}
 
-  <main class="container">
-    <!-- Hikes -->
-    <section id="hikes" class="tab-section visible">
-      <div class="toolbar">
-        <div class="left">
-          <div id="regionTabs" class="segmented" aria-label="Regions"></div>
-        </div>
-        <div class="right">
-          <button id="addHikeBtn">+ Add Hike</button>
-          <button id="resetHikesBtn" title="Overwrite cloud with bundled hikes">Reset to Inline</button>
-        </div>
-      </div>
-      <div id="hikeCards" class="card-grid"></div>
-    </section>
+/* Hero */
+.hero {
+  height: clamp(140px, 24vw, 280px);
+  background-image:
+    linear-gradient(to bottom, rgba(6,18,26,0.15), rgba(6,18,26,0.55)),
+    url("hero.jpg");
+  background-size: cover; background-position: center; background-repeat: no-repeat; margin: 0;
+}
 
-    <!-- Accommodations -->
-    <section id="accommodations" class="tab-section">
-      <div class="toolbar">
-        <div class="left"></div>
-        <div class="right">
-          <button id="addAccomBtn">+ Add Accommodation</button>
-        </div>
-      </div>
-      <div id="accommodationsList" class="list"></div>
-    </section>
+/* Sections */
+.tab-section { display: none; } .tab-section.visible { display: block; }
 
-    <!-- Attractions -->
-    <section id="attractions" class="tab-section">
-      <div class="toolbar">
-        <div class="left"></div>
-        <div class="right">
-          <button id="addAttrBtn">+ Add Attraction</button>
-        </div>
-      </div>
-      <div id="attractionsList" class="list"></div>
-    </section>
+/* Panels */
+.panel {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px;
+}
+.panel-col {
+  background: rgba(18,45,59,0.35); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px; padding: 12px;
+}
+.io-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.stack { display: grid; gap: 6px; }
+.hint { color: var(--muted); font-size: 13px; }
 
-    <!-- Map -->
-    <section id="map" class="tab-section">
-      <div id="mapContainer"></div>
-      <div class="map-legend">
-        <span class="legend-item"><span class="dot dot-hike"></span>Hike</span>
-        <span class="legend-item"><span class="dot dot-accom"></span>Accommodation</span>
-        <span class="legend-item"><span class="dot dot-attr"></span>Attraction</span>
-        <button id="fitBoundsBtn">Fit All</button>
-      </div>
-    </section>
+/* Toolbar */
+.toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin: 12px 0; gap: 10px; flex-wrap: wrap;
+}
+.toolbar .left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.toolbar .right { display: flex; gap: 8px; }
 
-    <!-- Data -->
-    <section id="data" class="tab-section">
-      <h2 class="sr-only">Data</h2>
-      <div class="panel">
-        <div class="panel-col">
-          <h3>Cloud Backend</h3>
-          <label class="stack">
-            <span>Apps Script Web App URL (ends with <code>/exec</code>)</span>
-            <input id="backendUrlInput" type="url"
-              placeholder="https://script.google.com/macros/s/…/exec" />
-          </label>
-          <div class="io-row">
-            <button id="saveBackendBtn" class="primary">Use This Backend</button>
-            <button id="refreshCloudBtn">Reload from Cloud</button>
-          </div>
-          <div class="io-row">
-            <button id="wipeHikesBtn" class="danger">Wipe Hikes (Cloud)</button>
-            <button id="wipeAccomBtn" class="danger">Wipe Accommodations (Cloud)</button>
-            <button id="wipeAttrBtn" class="danger">Wipe Attractions (Cloud)</button>
-          </div>
-          <p class="hint">Hikes, Accommodations, and Attractions are shared via Google Sheets.</p>
-        </div>
+/* Buttons & Inputs */
+button {
+  background: linear-gradient(180deg, #1b4257, #132f3f);
+  border: 1px solid rgba(255,255,255,0.08); color: var(--text);
+  padding: 12px 14px; border-radius: 12px; cursor: pointer; font-size: 1rem;
+}
+button.primary { border-color: var(--primary); color: var(--primary); }
+button.danger { border-color: #d9534f; color: #ffd1cf; }
+button:hover { transform: translateY(-1px); }
+input, textarea, select {
+  background: #123041; border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 10px; color: var(--text); padding: 12px; font-size: 1rem;
+}
 
-        <div class="panel-col">
-          <h3>Import / Export</h3>
-          <div class="io-row">
-            <button id="exportJsonBtn">Export JSON</button>
-            <input type="file" id="importJsonInput" accept=".json" hidden />
-            <button id="importJsonBtn">Import JSON</button>
-          </div>
-          <div class="io-row">
-            <input type="file" id="importXlsxInput" accept=".xlsx, .xls" hidden />
-            <button id="importXlsxBtn">Import Excel (Sheet 2 → Hikes)</button>
-          </div>
-        </div>
+/* Region tabs (mobile scrollable) */
+.segmented { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+.segmented::-webkit-scrollbar { height: 0; }
+.seg-btn {
+  background: #123041; border: 1px solid rgba(255,255,255,0.08);
+  color: var(--muted); padding: 9px 12px; border-radius: 999px; cursor: pointer; transition: .2s; flex: 0 0 auto;
+}
+.seg-btn:hover { color: var(--primary); border-color: var(--primary); }
+.seg-btn.active { background: #173c50; color: var(--text); border-color: var(--primary); box-shadow: 0 0 0 3px var(--ring); }
 
-        <div class="panel-col">
-          <h3>Hero Image</h3>
-          <label class="stack">
-            <span>Hero image URL (optional — overrides hero.jpg)</span>
-            <input id="heroUrlInput" type="url" placeholder="https://.../pyrenees.jpg" />
-          </label>
-          <div class="io-row">
-            <button id="saveHeroBtn" class="primary">Use This URL</button>
-            <input type="file" id="importHeroInput" accept="image/*" hidden />
-            <button id="importHeroBtn">Upload Image (JPG/PNG)</button>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
+/* Hike cards */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.flip-card { perspective: 1000px; }
+.flip-inner { position: relative; width: 100%; height: 240px; transition: transform .6s; transform-style: preserve-3d; }
+.flip-card.flipped .flip-inner { transform: rotateY(180deg); }
+.flip-face {
+  position: absolute; inset: 0; border-radius: 16px; overflow: hidden;
+  background: linear-gradient(180deg, var(--card-blue-1), var(--card-blue-2));
+  color: var(--card-ink); border: 1px solid rgba(12,37,67,0.12); padding: 14px; backface-visibility: hidden;
+}
+.flip-face.back { transform: rotateY(180deg); }
+.badge { display: inline-block; padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(12,37,67,0.2); color: #274b6a; font-size: 12px; background: rgba(255,255,255,0.6); }
+.hike-title { font-weight: 700; margin: 8px 0; font-size: 18px; color: var(--card-ink); }
+.meta { font-size: 14px; color: #c2d2e1; }
+.card-actions { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 8px; }
+.card-actions button { font-size: 12px; background: #e7f1fb; color: #18324c; border: 1px solid rgba(12,37,67,0.18); }
 
-  <!-- Backdrop -->
-  <div id="modalBackdrop" class="backdrop hidden"></div>
+/* Lists */
+.list { display: grid; gap: 10px; }
+.list-item {
+  border-radius: 16px; padding: 14px;
+  background: linear-gradient(180deg, rgba(17,45,59,0.78), rgba(14,34,45,0.78));
+  border: 1px solid rgba(255,255,255,0.08);
+  display: grid; grid-template-columns: 1fr auto; gap: 10px;
+}
+.list .meta { font-size: 14px; color: var(--muted); }
 
-  <!-- Hike modal -->
-  <div id="hikeModal" class="modal hidden">
-    <div class="modal-header">
-      <h3 id="hikeModalTitle">Add/Edit Hike</h3>
-      <button class="close-modal">&times;</button>
-    </div>
-    <div class="modal-body">
-      <div class="two-col">
-        <label>Name<input id="hikeName" /></label>
-        <label>Region<input id="hikeRegion" /></label>
-      </div>
-      <div class="two-col">
-        <label>Duration<input id="hikeDuration" placeholder="e.g., 4h 30m" /></label>
-        <label>Difficulty<input id="hikeDifficulty" placeholder="Easy / Moderate / Hard" /></label>
-      </div>
-      <label>Starting Point<input id="hikeStart" placeholder="Trailhead / Parking" /></label>
-      <label>Link to Details<input id="hikeLink" placeholder="https://" /></label>
-      <div class="two-col">
-        <label>Latitude<input id="hikeLat" type="number" step="any" /></label>
-        <label>Longitude<input id="hikeLon" type="number" step="any" /></label>
-      </div>
-      <label>Notes<textarea id="hikeNotes" rows="3"></textarea></label>
-      <div class="hint">Tip: Click the map to fill Lat/Lon.</div>
-    </div>
-    <div class="modal-footer">
-      <button id="deleteHikeBtn" class="danger">Delete</button>
-      <div class="spacer"></div>
-      <button class="close-modal">Cancel</button>
-      <button id="saveHikeBtn" class="primary">Save</button>
-    </div>
-  </div>
+/* Map */
+#mapContainer {
+  width: 100%; height: min(72vh, 760px);
+  border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08);
+}
+.map-legend { margin-top: 10px; display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; }
+.legend-item { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.dot-hike { background: var(--primary); } .dot-accom { background: var(--accent); } .dot-attr { background: #d9822b; }
 
-  <!-- Accommodation modal -->
-  <div id="accomModal" class="modal hidden">
-    <div class="modal-header">
-      <h3 id="accomModalTitle">Add/Edit Accommodation</h3>
-      <button class="close-modal">&times;</button>
-    </div>
-    <div class="modal-body">
-      <div class="two-col">
-        <label>Name<input id="accomName" /></label>
-        <label>Region<input id="accomRegion" /></label>
-      </div>
-      <div class="two-col">
-        <label>Check-in Date<input id="accomCheckinDate" type="date" /></label>
-        <label>Check-in Time<input id="accomCheckinTime" type="time" /></label>
-      </div>
-      <label>Link to Check-in Instructions<input id="accomLink" placeholder="https://" /></label>
-      <div class="two-col">
-        <label>Latitude<input id="accomLat" type="number" step="any" /></label>
-        <label>Longitude<input id="accomLon" type="number" step="any" /></label>
-      </div>
-      <label>Notes<textarea id="accomNotes" rows="3"></textarea></label>
-      <div class="hint">Tip: Click the map to fill Lat/Lon.</div>
-    </div>
-    <div class="modal-footer">
-      <button id="deleteAccomBtn" class="danger">Delete</button>
-      <div class="spacer"></div>
-      <button class="close-modal">Cancel</button>
-      <button id="saveAccomBtn" class="primary">Save</button>
-    </div>
-  </div>
+/* Modal (smaller & scrollable) */
+.backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); }
+.hidden { display: none; }
+.modal {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: min(560px, 94vw);    /* smaller by default */
+  max-height: 86vh;           /* keep it under full height */
+  background: rgba(14,34,45,0.98);
+  border-radius: 16px; border: 1px solid rgba(255,255,255,0.08);
+  display: flex; flex-direction: column; overscroll-behavior: contain;
+}
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.modal-body { padding: 12px; display: grid; gap: 10px; }
+.modal-body.scrollable { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.modal-footer { padding: 10px 12px; display: flex; align-items: center; gap: 8px; border-top: 1px solid rgba(255,255,255,0.08); }
+.modal .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.modal label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+.close-modal { background: transparent; border: none; font-size: 24px; color: var(--muted); cursor: pointer; }
+.spacer { flex: 1 1 auto; }
 
-  <!-- Attraction modal -->
-  <div id="attrModal" class="modal hidden">
-    <div class="modal-header">
-      <h3 id="attrModalTitle">Add/Edit Attraction</h3>
-      <button class="close-modal">&times;</button>
-    </div>
-    <div class="modal-body">
-      <div class="two-col">
-        <label>Name<input id="attrName" /></label>
-        <label>Region<input id="attrRegion" /></label>
-      </div>
-      <div class="two-col">
-        <label>Category<input id="attrCategory" placeholder="e.g., Museum, Viewpoint, Park" /></label>
-        <label>Link<input id="attrLink" placeholder="https://" /></label>
-      </div>
-      <div class="two-col">
-        <label>Latitude<input id="attrLat" type="number" step="any" /></label>
-        <label>Longitude<input id="attrLon" type="number" step="any" /></label>
-      </div>
-      <label>Notes<textarea id="attrNotes" rows="3"></textarea></label>
-      <div class="hint">Tip: Click the map to fill Lat/Lon.</div>
-    </div>
-    <div class="modal-footer">
-      <button id="deleteAttrBtn" class="danger">Delete</button>
-      <div class="spacer"></div>
-      <button class="close-modal">Cancel</button>
-      <button id="saveAttrBtn" class="primary">Save</button>
-    </div>
-  </div>
+/* A11y */
+.sr-only { position: absolute !important; height: 1px; width: 1px; overflow: hidden; clip: rect(1px,1px,1px,1px); }
 
-  <!-- Inline hikes (seed) -->
-  <script>
-    window.BUNDLED_HIKES = [
-      {"name":"Cirque d'Estaubé","region":"French Pyrenees","duration":"6 km or 12 km to the end to to Pla d'Ailhet","difficulty":"Easy","starting_point":null,"link":"https://www.enfant-en-voyage.com/en/hiking-in-the-Cirque-d%27Estaube/","lat":null,"lon":null,"notes":null},
-      {"name":"Cirque of Troumouse","region":"French Pyrenees","duration":"5 km","difficulty":"Easy","starting_point":"Toll road to start point","link":"https://www.enfant-en-voyage.com/en/troumouse-circus-hiking/","lat":null,"lon":null,"notes":"Toll road to start point"},
-      {"name":"Pahule Peak and Espécières Lake","region":"French Pyrenees","starting_point":"Starting from the parking lot of the Col de Tentes\nCan visit also Espécières lake 10 min walk","notes":"Starting from the parking lot of the Col de Tentes\nCan visit also Espécières lake 10 min walk"},
-      {"name":"Cirque de Lys","region":"French Pyrenees","duration":"3 hours","difficulty":"Easy","starting_point":"Starting point - Pont de Crabiou","link":"https://www.enfant-en-voyage.com/en/lys-circus-hiking/","notes":"Starting point - Pont de Crabiou"},
-      {"name":"the Larri in the Pineta Valley","region":"Ordessa","duration":"4 hours","difficulty":"Easy","starting_point":"From Bielsa take road HU-V-6402 in the valley until parking at the end","link":"https://www.enfant-en-voyage.com/en/hiking-pineta-valley/","notes":"From Bielsa take road HU-V-6402 in the valley until parking at the end"},
-      {"name":"Pic de la Pahule","region":"French Pyrenees","starting_point":"Start point Col de Tentes","link":"https://www.enfant-en-voyage.com/en/circus-gavarnie-family-hiking/#D'autres%20randonn%C3%A9es%20en%20famille%20dans%20les%20Pyr%C3%A9n%C3%A9es%20et%20ailleurs","notes":"Start point Col de Tentes"},
-      {"name":"קניון אניסקלו (Anisclo)","region":"Ordessa","notes":"מגיעים ל Escalona, נוסעים לכיוון כביש הנוף HU-631 לכיוון Passo Vio (אבל לא פונים אליה) ואז ממשיכים עם שילוט די פשוט לאניסקלו."},
-      {"name":"שביל המנזרים של טלה","region":"Ordessa"},
-      {"name":"Estany de Gerber","region":"Aigüestortes","duration":"3.5 km","difficulty":"Easy","link":"https://www.komoot.com/guide/175014/hiking-around-estany-de-gerber#guide_tour_e1266310582"},
-      {"name":"Artiga de Lin","region":"Aigüestortes","duration":"6 km","difficulty":"Easy","starting_point":"Begin the hike in the car park of Uelhs deth Joeu","link":"https://www.visitvaldaran.com/en/item/artiga-lin-uelhs-deth-joeu/","notes":"Extra link: https://www.komoot.com/tour/963841399"},
-      {"name":"The Horsetail","region":"Ordessa"},
-      {"name":"Llacs de Tristaina","region":"Andorra","duration":"4.4 km full trail","difficulty":"Moderate","starting_point":"Can start at top or take cable car up.  Hike to 1st lake is easy 40 min","notes":"Extra difficulty note: 1st part Easy"}
-    ];
-  </script>
-
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-          crossorigin=""></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="app.js"></script>
-</body>
-</html>
+/* Mobile / Tablet tweaks */
+@media (max-width: 900px) {
+  .container { padding-left: 10px; padding-right: 10px; }
+  .nav .tab-btn { padding: 11px 14px; font-size: 1rem; }
+  .flip-inner { height: 250px; }
+  #mapContainer { height: 62vh; }
+}
+@media (max-width: 640px) {
+  .title { font-size: 1rem; }
+  .modal { width: 94vw; max-height: 88vh; } /* comfier on phones */
+  .modal .two-col { grid-template-columns: 1fr; }
+  .card-grid { grid-template-columns: 1fr; }
+  .flip-inner { height: 260px; }
+  .toolbar .right { width: 100%; justify-content: flex-end; }
+  #mapContainer { height: 58vh; }
+}
