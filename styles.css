@@ -11,6 +11,7 @@ body {
   color: var(--text);
   -webkit-tap-highlight-color: transparent;
 }
+body.no-scroll { overflow: hidden; }
 .container { max-width: 1000px; margin: 0 auto; padding: 14px 12px 26px; }
 
 /* Top bar */
@@ -64,7 +65,7 @@ body {
 .toolbar .left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .toolbar .right { display: flex; gap: 8px; }
 
-/* Buttons */
+/* Buttons & Inputs */
 button {
   background: linear-gradient(180deg, #1b4257, #132f3f);
   border: 1px solid rgba(255,255,255,0.08); color: var(--text);
@@ -73,6 +74,10 @@ button {
 button.primary { border-color: var(--primary); color: var(--primary); }
 button.danger { border-color: #d9534f; color: #ffd1cf; }
 button:hover { transform: translateY(-1px); }
+input, textarea, select {
+  background: #123041; border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 10px; color: var(--text); padding: 12px; font-size: 1rem;
+}
 
 /* Region tabs (mobile scrollable) */
 .segmented { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
@@ -97,7 +102,7 @@ button:hover { transform: translateY(-1px); }
 .flip-face.back { transform: rotateY(180deg); }
 .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(12,37,67,0.2); color: #274b6a; font-size: 12px; background: rgba(255,255,255,0.6); }
 .hike-title { font-weight: 700; margin: 8px 0; font-size: 18px; color: var(--card-ink); }
-.meta { font-size: 14px; color: #3a536b; }
+.meta { font-size: 14px; color: #c2d2e1; }
 .card-actions { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 8px; }
 .card-actions button { font-size: 12px; background: #e7f1fb; color: #18324c; border: 1px solid rgba(12,37,67,0.18); }
 
@@ -121,24 +126,25 @@ button:hover { transform: translateY(-1px); }
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 .dot-hike { background: var(--primary); } .dot-accom { background: var(--accent); } .dot-attr { background: #d9822b; }
 
-/* Modal */
+/* Modal (smaller & scrollable) */
 .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); }
 .hidden { display: none; }
 .modal {
   position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  width: min(740px, 94vw); background: rgba(14,34,45,0.98);
+  width: min(560px, 94vw);    /* smaller by default */
+  max-height: 86vh;           /* keep it under full height */
+  background: rgba(14,34,45,0.98);
   border-radius: 16px; border: 1px solid rgba(255,255,255,0.08);
+  display: flex; flex-direction: column; overscroll-behavior: contain;
 }
-.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.08); }
-.modal-body { padding: 16px; display: grid; gap: 10px; }
-.modal-footer { padding: 12px 14px; display: flex; align-items: center; gap: 8px; border-top: 1px solid rgba(255,255,255,0.08); }
-.modal .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.modal-body { padding: 12px; display: grid; gap: 10px; }
+.modal-body.scrollable { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.modal-footer { padding: 10px 12px; display: flex; align-items: center; gap: 8px; border-top: 1px solid rgba(255,255,255,0.08); }
+.modal .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .modal label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
-.modal input, .modal textarea, .modal select {
-  background: #123041; border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 10px; color: var(--text); padding: 11px 12px; font-size: 1rem;
-}
 .close-modal { background: transparent; border: none; font-size: 24px; color: var(--muted); cursor: pointer; }
+.spacer { flex: 1 1 auto; }
 
 /* A11y */
 .sr-only { position: absolute !important; height: 1px; width: 1px; overflow: hidden; clip: rect(1px,1px,1px,1px); }
@@ -152,6 +158,7 @@ button:hover { transform: translateY(-1px); }
 }
 @media (max-width: 640px) {
   .title { font-size: 1rem; }
+  .modal { width: 94vw; max-height: 88vh; } /* comfier on phones */
   .modal .two-col { grid-template-columns: 1fr; }
   .card-grid { grid-template-columns: 1fr; }
   .flip-inner { height: 260px; }
