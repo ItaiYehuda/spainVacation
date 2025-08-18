@@ -1,6 +1,6 @@
 /* ===========================
    Mobile-friendly app + Cloud sync for Hikes, Accommodations, Attractions
-   Backend default set to your Apps Script URL
+   Backend default set to your latest Apps Script URL
    =========================== */
 
 // ----- Local storage keys (cache only) -----
@@ -20,14 +20,14 @@ let currentRegion = '';
 // ----- Helpers -----
 const $ = (id) => document.getElementById(id);
 const on = (id, evt, fn) => { const el = $(id); if (el) el.addEventListener(evt, fn); };
-const safe = (fn) => { try { fn(); } catch (e) { console.error(e); } };
 const escapeHtml = (s) => s==null ? '' : String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 const escapeAttr = escapeHtml;
 
 // ----- Backend URL -----
 function getBackendUrl() {
+  // Hard-coded default; UI can still override via Data → “Use This Backend”
   return localStorage.getItem(LS_BACKEND)
-    || 'https://script.google.com/macros/s/AKfycbxOj9V_UlIbL9e2MM4UKniTh3Zr4wTv14u3xHDjhToQxCgVpqyFgAbiCt2VMKy4yafu/exec';
+    || 'https://script.google.com/macros/s/AKfycbzg2cc47dGtXS0AkHMJOhCGPlRsucGegFS_vTbDPB-5EMEEG2Ye5emi0fD8mBlDGEBAEg/exec';
 }
 on('saveBackendBtn', 'click', () => {
   const url = $('backendUrlInput')?.value.trim();
@@ -36,6 +36,7 @@ on('saveBackendBtn', 'click', () => {
   alert('Backend URL saved');
   refreshAllFromCloud();
 });
+on('refreshCloudBtn','click', refreshAllFromCloud);
 
 // ----- JSONP (no CORS) -----
 function jsonp(url, params = {}, timeoutMs = 15000) {
@@ -153,7 +154,7 @@ async function addAttrCloud(o)     { const r = await cloudAdd('attractions', o);
 async function updAttrCloud(i, o)  { o.id = attrIds[i]; const r = await cloudUpdate('attractions', o); if (!r?.ok) throw new Error(r?.error||'Update failed'); await loadAttrFromCloud(); }
 async function delAttrCloud(i)     { const r = await cloudDelete('attractions', attrIds[i]); if (!r?.ok) throw new Error(r?.error||'Delete failed'); await loadAttrFromCloud(); }
 
-// ----- Local cache -----
+// ----- Local cache (optional) -----
 function saveLocal() {
   localStorage.setItem(LS_HIKES, JSON.stringify(hikes));
   localStorage.setItem(LS_ACCOM, JSON.stringify(accommodations));
@@ -360,15 +361,22 @@ on('fitBoundsBtn','click',() => {
 });
 
 // ----- Modals & actions -----
-const closeModals = () => {
-  $('modalBackdrop')?.classList.add('hidden');
+const backdrop = $('modalBackdrop');
+function openModal(el) {
+  document.body.classList.add('no-scroll');      // prevent background scroll (mobile)
+  backdrop?.classList.remove('hidden');
+  el?.classList.remove('hidden');
+}
+function closeModals() {
+  document.body.classList.remove('no-scroll');
+  backdrop?.classList.add('hidden');
   $('hikeModal')?.classList.add('hidden');
   $('accomModal')?.classList.add('hidden');
   $('attrModal')?.classList.add('hidden');
   editingContext = null;
-};
+}
 document.querySelectorAll('.close-modal').forEach(btn => btn.addEventListener('click', closeModals));
-$('modalBackdrop')?.addEventListener('click', closeModals);
+backdrop?.addEventListener('click', closeModals);
 
 // Hike modal
 on('addHikeBtn','click', () => openHikeModal(null));
@@ -385,8 +393,7 @@ function openHikeModal(index) {
   $('hikeLat').value = h?.lat ?? '';
   $('hikeLon').value = h?.lon ?? '';
   $('hikeNotes').value = h?.notes || '';
-  $('modalBackdrop').classList.remove('hidden');
-  $('hikeModal').classList.remove('hidden');
+  openModal($('hikeModal'));
 }
 on('saveHikeBtn','click', async () => {
   const obj = {
@@ -425,8 +432,7 @@ function openAccomModal(index) {
   $('accomLat').value = a?.lat ?? '';
   $('accomLon').value = a?.lon ?? '';
   $('accomNotes').value = a?.notes || '';
-  $('modalBackdrop').classList.remove('hidden');
-  $('accomModal').classList.remove('hidden');
+  openModal($('accomModal'));
 }
 on('saveAccomBtn','click', async () => {
   const obj = {
@@ -463,8 +469,7 @@ function openAttrModal(index) {
   $('attrLat').value = t?.lat ?? '';
   $('attrLon').value = t?.lon ?? '';
   $('attrNotes').value = t?.notes || '';
-  $('modalBackdrop').classList.remove('hidden');
-  $('attrModal').classList.remove('hidden');
+  openModal($('attrModal'));
 }
 on('saveAttrBtn','click', async () => {
   const obj = {
@@ -487,7 +492,7 @@ on('deleteAttrBtn','click', async () => {
   catch (e) { alert('Delete failed: ' + e.message); }
 });
 
-// ----- Data tab: JSON import/export & Excel import & wipes -----
+// ----- Data tab: JSON import/export, Excel import, wipes -----
 on('exportJsonBtn','click', () => {
   const payload = {
     hikes, accommodations, attractions,
@@ -536,8 +541,6 @@ on('wipeHikesBtn','click', async () => { if (!confirm('Wipe all Hikes in the clo
 on('wipeAccomBtn','click', async () => { if (!confirm('Wipe all Accommodations in the cloud?')) return; await cloudWipe('accommodations'); accommodations=[]; accomIds=[]; renderAccommodations(); renderMarkers(); });
 on('wipeAttrBtn','click', async () => { if (!confirm('Wipe all Attractions in the cloud?')) return; await cloudWipe('attractions'); attractions=[]; attrIds=[]; renderAttractions(); renderMarkers(); });
 
-on('refreshCloudBtn','click', refreshAllFromCloud);
-
 // ----- Map focus helpers -----
 function focusHikeOnMap(idx) { const h = hikes[idx]; if (!h || h.lat==null || h.lon==null) return; document.querySelector('[data-tab="map"]')?.click(); setTimeout(() => { map?.setView([h.lat, h.lon], 12); }, 150); }
 function focusAccomOnMap(idx) { const a = accommodations[idx]; if (!a || a.lat==null || a.lon==null) return; document.querySelector('[data-tab="map"]')?.click(); setTimeout(() => { map?.setView([a.lat, a.lon], 12); }, 150); }
@@ -571,7 +574,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load from cloud (then cache)
   await refreshAllFromCloud();
 
-  // Optional: auto-refresh hikes/accom/attr every 30s for others’ edits
+  // Optional: auto-refresh every 30s so edits elsewhere appear
   // setInterval(refreshAllFromCloud, 30000);
 });
 
